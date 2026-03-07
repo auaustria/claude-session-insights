@@ -174,5 +174,14 @@ export function startServer(port = 3456) {
     console.log(`cc-usage-insights running at http://localhost:${port}`);
   });
 
+  // Graceful shutdown for --watch restarts
+  for (const sig of ["SIGTERM", "SIGINT"]) {
+    process.on(sig, () => {
+      server.close(() => process.exit(0));
+      // Force exit after 1s if connections linger
+      setTimeout(() => process.exit(0), 1000);
+    });
+  }
+
   return server;
 }

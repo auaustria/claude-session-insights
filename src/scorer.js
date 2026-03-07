@@ -208,7 +208,8 @@ const BADGE_DEFINITIONS = [
   {
     id: "surgical-prompter",
     name: "Surgical Prompter",
-    description: "Tool call ratio < 2x across 5+ sessions",
+    description: "Your prompts guide Claude straight to the answer — minimal tool thrashing means less time and tokens wasted on searching and retrying.",
+    criteria: "Tool call ratio < 2x across 5+ sessions",
     test: (sessions) => {
       const qualifying = sessions.filter(
         (s) => s.totals.userMessages > 0 && s.totals.toolCalls / s.totals.userMessages < 2
@@ -219,7 +220,8 @@ const BADGE_DEFINITIONS = [
   {
     id: "cache-whisperer",
     name: "Cache Whisperer",
-    description: "Cache hit rate > 75% across 5+ sessions",
+    description: "You structure sessions so Claude reuses cached context instead of re-reading files — this dramatically cuts input token costs.",
+    criteria: "Cache hit rate > 75% across 5+ sessions",
     test: (sessions) => {
       const qualifying = sessions.filter(
         (s) => s.totals.totalTokens > 10_000 && s.totals.cacheHitRate > 0.75
@@ -230,7 +232,8 @@ const BADGE_DEFINITIONS = [
   {
     id: "clean-slate",
     name: "Clean Slate",
-    description: "Uses /clear near cost inflection in 3+ sessions",
+    description: "You clear context before costs spiral — resetting at the right moment keeps sessions fast and cheap instead of letting them bloat.",
+    criteria: "Uses /clear near cost inflection in 3+ sessions",
     test: (sessions) => {
       let count = 0;
       for (const s of sessions) {
@@ -245,7 +248,8 @@ const BADGE_DEFINITIONS = [
   {
     id: "model-sniper",
     name: "Model Sniper",
-    description: "Appropriate model selection > 90% of sessions",
+    description: "You pick the right model for the job — using Sonnet for quick tasks and reserving Opus for complex ones saves serious money.",
+    criteria: "Appropriate model selection > 90% of sessions",
     test: (sessions) => {
       if (sessions.length < 5) return false;
       const appropriate = sessions.filter((s) => {
@@ -259,7 +263,8 @@ const BADGE_DEFINITIONS = [
   {
     id: "efficiency-diamond",
     name: "Efficiency Diamond",
-    description: "Overall score > 85 sustained over 7 days",
+    description: "Consistently high efficiency across all dimensions — you've built habits that keep every session lean and effective.",
+    criteria: "Overall score > 85 sustained over 7 days",
     test: (sessions, scoredSessions) => {
       if (!scoredSessions || scoredSessions.length < 5) return false;
       const avg =
@@ -274,6 +279,7 @@ export function evaluateBadges(sessions, scoredSessions) {
     id: b.id,
     name: b.name,
     description: b.description,
+    criteria: b.criteria,
   }));
 }
 

@@ -19,6 +19,9 @@
     "usage",
     "insights"
   ],
+  "scripts": {
+    "dev": "node --watch-path=src --watch-path=public bin/cli.js --no-open"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",

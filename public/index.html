@@ -50,7 +50,15 @@
   }
   .badges-card h3 { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
   .badge { display: inline-block; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 20px; padding: 6px 14px; margin: 4px; font-size: 13px; }
+    border-radius: 20px; padding: 6px 14px; margin: 4px; font-size: 13px;
+    position: relative; cursor: default; }
+  .badge .badge-tip {
+    display: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 12px; font-size: 12px; color: var(--text2);
+    width: 260px; line-height: 1.5; z-index: 10; pointer-events: none;
+  }
+  .badge:hover .badge-tip { display: block; }
 
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 12px; margin-bottom: 32px; }
@@ -106,6 +114,28 @@
   .score-low { background: #3a1a1a; color: var(--red); }
 
   .loading { text-align: center; padding: 60px; color: var(--text2); }
+
+  .score-info-toggle {
+    background: none; border: none; color: var(--text2); cursor: pointer;
+    font-size: 12px; margin-top: 8px; padding: 0;
+  }
+  .score-info-toggle:hover { color: var(--accent); }
+  .score-breakdown {
+    display: none; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 24px; margin-bottom: 24px;
+  }
+  .score-breakdown.open { display: block; }
+  .score-breakdown h3 { font-size: 14px; color: var(--text2); margin-bottom: 14px; }
+  .score-breakdown p { font-size: 13px; color: var(--text2); margin-bottom: 16px; line-height: 1.6; }
+  .dim-explain { display: flex; flex-direction: column; gap: 10px; }
+  .dim-explain-row {
+    display: flex; align-items: baseline; gap: 12px; font-size: 13px;
+  }
+  .dim-explain-weight {
+    min-width: 36px; text-align: right; color: var(--accent); font-weight: 600; font-size: 12px;
+  }
+  .dim-explain-name { font-weight: 600; color: var(--text); min-width: 140px; }
+  .dim-explain-desc { color: var(--text2); }
 
   /* Summary cards */
   .summary-card {
@@ -365,6 +395,8 @@ let currentView = 'dashboard';
 function renderDashboard(data) {
   currentView = 'dashboard';
   const totalTokens = data.sessions.reduce((s, x) => s + x.totals.totalTokens, 0);
+  const totalInput = data.sessions.reduce((s, x) => s + x.totals.inputTokens + (x.totals.cacheCreationTokens || 0) + (x.totals.cacheReadTokens || 0), 0);
+  const totalOutput = data.sessions.reduce((s, x) => s + x.totals.outputTokens, 0);
   const totalCost = data.sessions.reduce((s, x) => s + x.totals.estimatedCost, 0);
   const avgCacheHit = data.sessions.length > 0
     ? data.sessions.reduce((s, x) => s + x.totals.cacheHitRate, 0) / data.sessions.length : 0;
@@ -392,12 +424,44 @@ function renderDashboard(data) {
       <div class="score-card">
         <div class="score">${data.overallScore}</div>
         <div class="label">Efficiency Score (7-day)</div>
+        <button class="score-info-toggle" onclick="toggleScoreBreakdown()">How is this computed?</button>
       </div>
       <div class="badges-card">
         <h3>Badges Earned</h3>
         ${data.badges.length > 0
-          ? data.badges.map(b => `<span class="badge">${b.name}</span>`).join('')
+          ? data.badges.map(b => `<span class="badge">${b.name}<span class="badge-tip">${escHtml(b.description)}</span></span>`).join('')
           : '<span style="color: var(--text2)">Keep going -- badges unlock after 5+ sessions</span>'}
+      </div>
+    </div>
+    <div class="score-breakdown" id="score-breakdown">
+      <h3>How Efficiency Score Works</h3>
+      <p>Each session is scored 0-100 across five dimensions. The overall score is a weighted average of recent sessions (last 7 days).</p>
+      <div class="dim-explain">
+        <div class="dim-explain-row">
+          <span class="dim-explain-weight">30%</span>
+          <span class="dim-explain-name">Tool Call Ratio</span>
+          <span class="dim-explain-desc">Fewer tool calls per message means your prompts are specific enough that Claude doesn't need to search around. Under 2x is ideal.</span>
+        </div>
+        <div class="dim-explain-row">
+          <span class="dim-explain-weight">25%</span>
+          <span class="dim-explain-name">Cache Hit Rate</span>
+          <span class="dim-explain-desc">Higher cache hits mean Claude is reusing previously read context instead of re-processing it. Above 60% is good, 75%+ is great.</span>
+        </div>
+        <div class="dim-explain-row">
+          <span class="dim-explain-weight">20%</span>
+          <span class="dim-explain-name">Context Management</span>
+          <span class="dim-explain-desc">Detects if cost-per-turn spirals up mid-session (context bloat) and whether you used /clear at the right time to reset.</span>
+        </div>
+        <div class="dim-explain-row">
+          <span class="dim-explain-weight">15%</span>
+          <span class="dim-explain-name">Model Fit</span>
+          <span class="dim-explain-desc">Checks if you're using Opus only for complex tasks. Short, simple sessions are better suited for Sonnet at a fraction of the cost.</span>
+        </div>
+        <div class="dim-explain-row">
+          <span class="dim-explain-weight">10%</span>
+          <span class="dim-explain-name">Prompt Specificity</span>
+          <span class="dim-explain-desc">Flags vague prompts (under 30 chars) that lead to expensive responses. Specific prompts produce cheaper, more accurate results.</span>
+        </div>
       </div>
     </div>
     ${data.overallSummary ? `
@@ -414,7 +478,7 @@ function renderDashboard(data) {
     </div>` : ''}
     <div class="stats">
       <div class="stat"><div class="value">${data.sessions.length}</div><div class="label">Sessions</div></div>
-      <div class="stat"><div class="value">${formatTokens(totalTokens)}</div><div class="label">Total Tokens</div></div>
+      <div class="stat"><div class="value">${formatTokens(totalTokens)}</div><div class="label">Total Tokens</div><div class="label">${formatTokens(totalInput)} in / ${formatTokens(totalOutput)} out</div></div>
       <div class="stat"><div class="value">${formatCost(totalCost)}</div><div class="label">Est. API Cost</div></div>
       <div class="stat"><div class="value">${(avgCacheHit * 100).toFixed(0)}%</div><div class="label">Avg Cache Hit Rate</div></div>
     </div>
@@ -569,6 +633,11 @@ function renderSession(s) {
 
   const costCanvas = document.getElementById('cost-chart');
   if (costCanvas) drawCostPerTurn(costCanvas, s.turns);
+}
+
+function toggleScoreBreakdown() {
+  const el = document.getElementById('score-breakdown');
+  if (el) el.classList.toggle('open');
 }
 
 function goBack() {
