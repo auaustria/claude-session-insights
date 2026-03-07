@@ -123,11 +123,35 @@
   .header-actions { display: flex; align-items: center; gap: 8px; }
   .refresh-btn {
     background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
-    padding: 7px 16px; border-radius: 7px; cursor: pointer; font-size: 12px;
-    font-weight: 500; transition: all 0.2s;
+    width: 34px; height: 34px; border-radius: 7px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-size: 15px; line-height: 1; padding: 0;
   }
   .refresh-btn:hover {
     background: var(--surface3); color: var(--text); border-color: var(--border-hover);
+  }
+  .refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .auto-refresh-toggle {
+    display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3);
+    cursor: pointer; user-select: none; width: 155px; flex-shrink: 0;
+  }
+  #auto-refresh-label { font-variant-numeric: tabular-nums; }
+  .auto-refresh-toggle input { display: none; }
+  .auto-refresh-track {
+    width: 28px; height: 16px; border-radius: 8px; background: var(--surface3);
+    border: 1px solid var(--border); position: relative; transition: all 0.2s;
+  }
+  .auto-refresh-track::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 10px; height: 10px; border-radius: 50%; background: var(--text3);
+    transition: all 0.2s;
+  }
+  .auto-refresh-toggle input:checked + .auto-refresh-track {
+    background: var(--accent-dim); border-color: var(--accent);
+  }
+  .auto-refresh-toggle input:checked + .auto-refresh-track::after {
+    left: 14px; background: var(--accent);
   }
   .theme-toggle {
     background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
@@ -864,7 +888,14 @@ function renderDashboard(data) {
     <header>
       <h1>claude-insights <span>v${data.version}</span></h1>
       <div class="header-actions">
-        <button class="refresh-btn" onclick="doRefresh()">Refresh</button>
+        <label class="auto-refresh-toggle" title="Auto-refresh every 15s">
+          <input type="checkbox" id="auto-refresh-cb" onchange="toggleAutoRefresh(this.checked)" ${autoRefreshActive ? 'checked' : ''}>
+          <span class="auto-refresh-track"></span>
+          <span id="auto-refresh-label">${autoRefreshActive ? 'Auto-refresh (' + String(autoRefreshCountdown).padStart(2, '0') + 's)' : 'Auto-refresh (15s)'}</span>
+        </label>
+        <button class="refresh-btn" onclick="doRefresh()" title="Refresh" id="refresh-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 13a10 10 0 1 1-2.84-8.84L21.5 8"/></svg>
+        </button>
         <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="theme-toggle-btn"></button>
       </div>
     </header>
@@ -1235,6 +1266,9 @@ function generateAIInsights() {
   const body = document.getElementById('ai-insights-body');
   if (!body) return;
 
+  const wasActive = autoRefreshActive;
+  if (autoRefreshActive) pauseAutoRefresh();
+
   const modelId = selectedModelId;
   const modelParam = modelId ? `?model=${encodeURIComponent(modelId)}` : '';
 
@@ -1244,6 +1278,7 @@ function generateAIInsights() {
       <div>
         <div>Calling Claude CLI with ${modelId ? modelLabel(modelId) : 'default model'}...</div>
         <div style="font-size:11px; color:var(--text3); margin-top:2px">Streaming response — tokens appear as they arrive</div>
+        ${wasActive ? '<div style="font-size:11px; color:var(--yellow); margin-top:4px">Auto-refresh paused while generating</div>' : ''}
       </div>
     </div>
     <div class="ai-insights-content" id="ai-stream-content"></div>`;
@@ -1297,11 +1332,13 @@ async function streamAIFetch(modelParam, body) {
                 <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)"></span><div class="ai-model-menu"></div></span>
               </div>`;
             renderModelPicker();
+            resumeAutoRefreshIfPaused();
           }
           currentEvent = '';
         }
       }
     }
+    resumeAutoRefreshIfPaused();
   } catch (err) {
     body.innerHTML = `<div class="ai-error">Failed to connect to server</div>
       <div class="ai-controls" style="margin-top: 8px;">
@@ -1309,6 +1346,7 @@ async function streamAIFetch(modelParam, body) {
         <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)"></span><div class="ai-model-menu"></div></span>
       </div>`;
     renderModelPicker();
+    resumeAutoRefreshIfPaused();
   }
 }
 
@@ -1332,13 +1370,87 @@ async function loadCachedAIInsights() {
 // --- Init ---
 
 let currentData;
+let autoRefreshTimer = null;
+let autoRefreshTick = null;
+let autoRefreshActive = localStorage.getItem('claude-insights-auto-refresh') === 'true';
+let autoRefreshCountdown = 15;
+let autoRefreshPaused = false;
+
 async function doRefresh() {
-  $('#app').innerHTML = '<div class="loading">Refreshing...</div>';
+  const btn = $('#refresh-btn');
+  btn.classList.add('spinning');
   currentData = await fetchData(true);
   renderDashboard(currentData);
+  btn.classList.remove('spinning');
 }
 
-fetchData().then(data => { currentData = data; renderDashboard(data); loadCachedAIInsights(); });
+function updateCountdownLabel() {
+  const label = document.getElementById('auto-refresh-label');
+  if (label && autoRefreshActive) {
+    label.textContent = 'Auto-refresh (' + String(autoRefreshCountdown).padStart(2, '0') + 's)';
+  }
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefreshActive = true;
+  autoRefreshCountdown = 15;
+  localStorage.setItem('claude-insights-auto-refresh', 'true');
+  updateCountdownLabel();
+  autoRefreshTick = setInterval(() => {
+    autoRefreshCountdown--;
+    updateCountdownLabel();
+    if (autoRefreshCountdown <= 0) {
+      autoRefreshCountdown = 15;
+      (async () => {
+        const btn = $('#refresh-btn');
+        if (btn) btn.classList.add('spinning');
+        currentData = await fetchData(true);
+        renderDashboard(currentData);
+        if (btn) btn.classList.remove('spinning');
+        updateCountdownLabel();
+      })();
+    }
+  }, 1000);
+}
+
+function stopAutoRefresh() {
+  clearInterval(autoRefreshTick);
+  autoRefreshTick = null;
+  autoRefreshTimer = null;
+  autoRefreshActive = false;
+  autoRefreshCountdown = 15;
+  localStorage.setItem('claude-insights-auto-refresh', 'false');
+  const label = document.getElementById('auto-refresh-label');
+  if (label) label.textContent = 'Auto-refresh (15s)';
+}
+
+function toggleAutoRefresh(on) {
+  if (on) startAutoRefresh();
+  else stopAutoRefresh();
+}
+
+function pauseAutoRefresh() {
+  clearInterval(autoRefreshTick);
+  autoRefreshTick = null;
+  autoRefreshPaused = true;
+  const label = document.getElementById('auto-refresh-label');
+  if (label) label.textContent = 'Auto-refresh (paused)';
+}
+
+function resumeAutoRefreshIfPaused() {
+  if (autoRefreshPaused) {
+    autoRefreshPaused = false;
+    startAutoRefresh();
+  }
+}
+
+fetchData().then(data => {
+  currentData = data;
+  renderDashboard(data);
+  loadCachedAIInsights();
+  if (autoRefreshActive) startAutoRefresh();
+});
 
 // Live reload via SSE
 const sse = new EventSource('/api/reload');
