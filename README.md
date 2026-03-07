@@ -1,4 +1,4 @@
-# cc-usage-insights
+# claude-insights
 
 A lightweight CLI tool that analyzes your Claude Code sessions locally, computes an efficiency score, and surfaces actionable insights to help you use Claude more effectively.
 
@@ -15,7 +15,7 @@ Think "Spotify Wrapped" for your Claude Code usage — scores, summaries, badges
 ## Quick Start
 
 ```bash
-npx cc-usage-insights
+npx claude-insights
 ```
 
 That's it. Opens a dashboard at `http://localhost:3456` showing all your Claude Code sessions.
@@ -23,11 +23,11 @@ That's it. Opens a dashboard at `http://localhost:3456` showing all your Claude 
 ## Commands
 
 ```bash
-npx cc-usage-insights                # open the dashboard
-npx cc-usage-insights export         # generate team-export.json
-npx cc-usage-insights --port 8080    # custom port (default: 3456)
-npx cc-usage-insights --no-open      # don't auto-launch browser
-npx cc-usage-insights --help         # show help
+npx claude-insights                # open the dashboard
+npx claude-insights export         # generate team-export.json
+npx claude-insights --port 8080    # custom port (default: 3456)
+npx claude-insights --no-open      # don't auto-launch browser
+npx claude-insights --help         # show help
 ```
 
 ## What It Reads
@@ -79,7 +79,7 @@ The dashboard generates rule-based summaries at two levels:
 Generate a privacy-safe snapshot to share with your team lead:
 
 ```bash
-npx cc-usage-insights export
+npx claude-insights export
 ```
 
 The export contains scores, token counts, cost breakdowns, badge status, and summary categories — **never prompt text**. Team leads can aggregate these to identify coaching opportunities across the team.

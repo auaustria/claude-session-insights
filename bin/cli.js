@@ -6,14 +6,14 @@ import { generateExport } from "../src/export.js";
 const args = process.argv.slice(2);
 
 if (args.includes("--help") || args.includes("-h")) {
-  console.log(`cc-usage-insights — Claude Code efficiency insights
+  console.log(`claude-insights — Claude Code efficiency insights
 
 Usage:
-  cc-usage-insights               Open the dashboard
-  cc-usage-insights export        Generate team-export.json
-  cc-usage-insights --port 8080   Custom port (default: 3456)
-  cc-usage-insights --no-open     Don't auto-launch browser
-  cc-usage-insights --help        Show this help`);
+  claude-insights               Open the dashboard
+  claude-insights export        Generate team-export.json
+  claude-insights --port 8080   Custom port (default: 3456)
+  claude-insights --no-open     Don't auto-launch browser
+  claude-insights --help        Show this help`);
   process.exit(0);
 }
 

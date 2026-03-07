@@ -175,7 +175,7 @@ export function startServer(port = 3456) {
   });
 
   server.listen(port, () => {
-    console.log(`cc-usage-insights running at http://localhost:${port}`);
+    console.log(`claude-insights running at http://localhost:${port}`);
   });
 
   // Graceful shutdown for --watch restarts

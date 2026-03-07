@@ -1,10 +1,10 @@
-# cc-usage-insights — Project Plan
+# claude-insights — Project Plan
 
 ## What We're Building
 
 A lightweight CLI tool that analyzes Claude Code session files locally, computes an efficiency score, and surfaces actionable tips. Optional team export for leads to aggregate anonymized data.
 
-**Package name:** `cc-usage-insights`
+**Package name:** `claude-insights`
 **Reference inspiration:** [claude-spend](https://github.com/writetoaniketparihar-collab/claude-spend) by Aniket Parihar (MIT)
 
 ### How we differ from claude-spend
@@ -215,11 +215,11 @@ Single HTML file with embedded CSS/JS. Shows:
 ## CLI Commands
 
 ```bash
-npx cc-usage-insights               # open personal dashboard
-npx cc-usage-insights export        # generate team-export.json
-npx cc-usage-insights --port 8080   # custom port (default: 3456)
-npx cc-usage-insights --no-open     # don't auto-launch browser
-npx cc-usage-insights --help        # show help
+npx claude-insights               # open personal dashboard
+npx claude-insights export        # generate team-export.json
+npx claude-insights --port 8080   # custom port (default: 3456)
+npx claude-insights --no-open     # don't auto-launch browser
+npx claude-insights --help        # show help
 ```
 
 ---
@@ -257,7 +257,7 @@ Phase 2 (later): aggregator.js, lead dashboard, weekly wrapped
 ## File Structure
 
 ```
-cc-usage-insights/
+claude-insights/
   bin/cli.js              # entry point, arg parsing
   src/
     parser.js             # JSONL reader
