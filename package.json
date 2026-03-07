@@ -1,6 +1,6 @@
 {
   "name": "claude-insights",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Analyze Claude Code sessions for efficiency insights, scores, and team metrics",
   "type": "module",
   "bin": {
