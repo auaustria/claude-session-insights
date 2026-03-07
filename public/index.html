@@ -565,9 +565,15 @@
     display: inline-flex; align-items: center; gap: 5px;
     background: var(--surface2); border: 1px solid var(--border); color: var(--text3);
     padding: 5px 10px; border-radius: 20px; font-size: 11px; font-family: var(--mono);
-    cursor: pointer; transition: all 0.2s; user-select: none;
+    cursor: pointer; transition: all 0.2s; user-select: none; position: relative;
   }
   .ai-model-pill:hover { border-color: var(--border-hover); color: var(--text2); }
+  .ai-model-pill[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: var(--text); color: var(--bg); font-size: 10px; white-space: nowrap;
+    padding: 4px 8px; border-radius: 4px; pointer-events: none; z-index: 200;
+  }
   .ai-model-pill .pill-chevron {
     font-size: 8px; opacity: 0.4; transition: transform 0.2s;
   }
@@ -936,7 +942,7 @@ function renderDashboard(data) {
         <div id="ai-insights-body">
           <div class="ai-controls">
             <button class="ai-generate-btn" onclick="generateAIInsights()">Generate AI Insights</button>
-            <span class="ai-model-picker" id="ai-model-picker" title="Click to switch model"><span class="ai-model-pill" onclick="toggleModelMenu(event)"></span><div class="ai-model-menu"></div></span>
+            <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
           </div>
           <div class="ai-token-warning">
             <span class="warn-icon">⚠</span>
@@ -1256,7 +1262,7 @@ function renderAIComplete(content, generatedAt, model) {
       ${model ? ` · ${modelLabel(model)}` : ''}
       <div style="margin-top: 10px;" class="ai-controls">
         <button class="ai-generate-btn" style="padding: 5px 14px; font-size: 11px;" onclick="generateAIInsights()">Regenerate</button>
-        <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)"></span><div class="ai-model-menu"></div></span>
+        <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
       </div>
     </div>`;
   renderModelPicker();
@@ -1329,7 +1335,7 @@ async function streamAIFetch(modelParam, body) {
             body.innerHTML = `<div class="ai-error">${escHtml(message)}</div>
               <div class="ai-controls" style="margin-top: 8px;">
                 <button class="ai-generate-btn" onclick="generateAIInsights()">Retry</button>
-                <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)"></span><div class="ai-model-menu"></div></span>
+                <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
               </div>`;
             renderModelPicker();
             resumeAutoRefreshIfPaused();
@@ -1343,7 +1349,7 @@ async function streamAIFetch(modelParam, body) {
     body.innerHTML = `<div class="ai-error">Failed to connect to server</div>
       <div class="ai-controls" style="margin-top: 8px;">
         <button class="ai-generate-btn" onclick="generateAIInsights()">Retry</button>
-        <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)"></span><div class="ai-model-menu"></div></span>
+        <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
       </div>`;
     renderModelPicker();
     resumeAutoRefreshIfPaused();
