@@ -7,6 +7,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { parseAllSessions } from "./parser.js";
 import { scoreAllSessions } from "./scorer.js";
+import { streamAIAnalysis, getCachedAnalysis, getAvailableModels, killActiveProcesses, detectDefaultModel } from "./ai-analyze.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -141,6 +142,29 @@ export function startServer(port = 3456) {
         });
       }
 
+      if (url.pathname === "/api/ai-analyze" && req.method === "POST") {
+        const data = await getData();
+        const modelId = url.searchParams.get("model") || "";
+        res.writeHead(200, {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        });
+        streamAIAnalysis(data, res, modelId || undefined);
+        return;
+      }
+
+      if (url.pathname === "/api/ai-analyze" && req.method === "GET") {
+        const cached = getCachedAnalysis();
+        const { models, defaultModel, defaultModelLabel } = getAvailableModels();
+        return json(res, {
+          ...(cached || { content: null }),
+          models,
+          defaultModel,
+          defaultModelLabel,
+        });
+      }
+
       if (url.pathname === "/api/refresh") {
         const data = await getData(true);
         return json(res, { sessions: data.sessions.length, overallScore: data.overallScore });
@@ -176,11 +200,13 @@ export function startServer(port = 3456) {
 
   server.listen(port, () => {
     console.log(`claude-insights running at http://localhost:${port}`);
+    detectDefaultModel();
   });
 
   // Graceful shutdown for --watch restarts
   for (const sig of ["SIGTERM", "SIGINT"]) {
     process.on(sig, () => {
+      killActiveProcesses();
       server.close(() => process.exit(0));
       // Force exit after 1s if connections linger
       setTimeout(() => process.exit(0), 1000);
