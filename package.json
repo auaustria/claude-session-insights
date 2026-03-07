@@ -1,10 +1,10 @@
 {
-  "name": "claude-insights",
+  "name": "claude-session-insights",
   "version": "0.2.1",
   "description": "Analyze Claude Code sessions for efficiency insights, scores, and team metrics",
   "type": "module",
   "bin": {
-    "claude-insights": "./bin/cli.js"
+    "claude-session-insights": "./bin/cli.js"
   },
   "files": [
     "bin/",
@@ -25,6 +25,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/auaustria/claude-insights"
+    "url": "https://github.com/auaustria/claude-session-insights"
   }
 }

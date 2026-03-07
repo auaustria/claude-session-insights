@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>claude-insights</title>
+<title>claude-session-insights</title>
 <style>
   :root {
     --radius: 10px;
@@ -654,7 +654,7 @@ const $ = (s) => document.querySelector(s);
 
 // --- Theme ---
 function getPreferredTheme() {
-  const stored = localStorage.getItem('claude-insights-theme');
+  const stored = localStorage.getItem('claude-session-insights-theme');
   if (stored) return stored;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -668,7 +668,7 @@ function applyTheme(theme) {
 function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || getPreferredTheme();
   const next = current === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('claude-insights-theme', next);
+  localStorage.setItem('claude-session-insights-theme', next);
   applyTheme(next);
   // Redraw charts with new theme colors
   if (currentView === 'dashboard' && currentData) {
@@ -680,7 +680,7 @@ function toggleTheme() {
 applyTheme(getPreferredTheme());
 
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if (!localStorage.getItem('claude-insights-theme')) {
+  if (!localStorage.getItem('claude-session-insights-theme')) {
     applyTheme(getPreferredTheme());
   }
 });
@@ -928,7 +928,7 @@ function renderDashboard(data) {
 
   $('#app').innerHTML = `
     <header>
-      <h1>claude-insights <span>v${data.version}</span></h1>
+      <h1>claude-session-insights <span>v${data.version}</span></h1>
       <div class="header-actions">
         <label class="auto-refresh-toggle" title="Auto-refresh every 15s">
           <input type="checkbox" id="auto-refresh-cb" onchange="toggleAutoRefresh(this.checked)" ${autoRefreshActive ? 'checked' : ''}>
@@ -1461,7 +1461,7 @@ async function loadCachedAIInsights() {
 let currentData;
 let autoRefreshTimer = null;
 let autoRefreshTick = null;
-let autoRefreshActive = localStorage.getItem('claude-insights-auto-refresh') === 'true';
+let autoRefreshActive = localStorage.getItem('claude-session-insights-auto-refresh') === 'true';
 let autoRefreshCountdown = 15;
 let autoRefreshPaused = false;
 
@@ -1484,7 +1484,7 @@ function startAutoRefresh() {
   stopAutoRefresh();
   autoRefreshActive = true;
   autoRefreshCountdown = 15;
-  localStorage.setItem('claude-insights-auto-refresh', 'true');
+  localStorage.setItem('claude-session-insights-auto-refresh', 'true');
   updateCountdownLabel();
   autoRefreshTick = setInterval(() => {
     autoRefreshCountdown--;
@@ -1509,7 +1509,7 @@ function stopAutoRefresh() {
   autoRefreshTimer = null;
   autoRefreshActive = false;
   autoRefreshCountdown = 15;
-  localStorage.setItem('claude-insights-auto-refresh', 'false');
+  localStorage.setItem('claude-session-insights-auto-refresh', 'false');
   const label = document.getElementById('auto-refresh-label');
   if (label) label.textContent = 'Auto-refresh (15s)';
 }

@@ -211,7 +211,7 @@ export function startServer(port = 6543) {
   });
 
   server.listen(port, () => {
-    console.log(`claude-insights running at http://localhost:${port}`);
+    console.log(`claude-session-insights running at http://localhost:${port}`);
     detectDefaultModel();
   });
 

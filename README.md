@@ -1,4 +1,4 @@
-# claude-insights
+# claude-session-insights
 
 A lightweight CLI tool that analyzes your Claude Code sessions locally, computes an efficiency score, and surfaces actionable insights to help you use Claude more effectively.
 
@@ -21,7 +21,7 @@ Think "Spotify Wrapped" for your Claude Code usage — scores, summaries, badges
 ## Quick Start
 
 ```bash
-npx claude-insights
+npx claude-session-insights
 ```
 
 That's it. Opens a dashboard at `http://localhost:6543` showing all your Claude Code sessions.
@@ -29,11 +29,11 @@ That's it. Opens a dashboard at `http://localhost:6543` showing all your Claude 
 ## Commands
 
 ```bash
-npx claude-insights                # open the dashboard
-npx claude-insights export         # generate team-export.json
-npx claude-insights --port 8080    # custom port (default: 6543)
-npx claude-insights --no-open      # don't auto-launch browser
-npx claude-insights --help         # show help
+npx claude-session-insights                # open the dashboard
+npx claude-session-insights export         # generate team-export.json
+npx claude-session-insights --port 8080    # custom port (default: 6543)
+npx claude-session-insights --no-open      # don't auto-launch browser
+npx claude-session-insights --help         # show help
 ```
 
 ## What It Reads
@@ -109,7 +109,7 @@ You can pick which model to use (Sonnet, Opus, or Haiku) from the model picker. 
 Generate a privacy-safe snapshot to share with your team lead:
 
 ```bash
-npx claude-insights export
+npx claude-session-insights export
 ```
 
 The export contains scores, token counts, cost breakdowns, badge status, and summary categories — **never prompt text**. Team leads can aggregate these to identify coaching opportunities across the team.
