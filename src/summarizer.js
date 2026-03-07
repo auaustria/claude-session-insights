@@ -113,9 +113,9 @@ export function generateOverallSummary(scoredData) {
 
   // 4. Model usage
   const opusSessions = sessions.filter(s => (s.model || "").includes("opus"));
-  const opusMismatches = sessions.filter(s => {
-    return s.tips?.some(t => t.type === "model-mismatch");
-  });
+  // Use suggestedModel (same as the table column) rather than the model-mismatch tip,
+  // which only fires for short/small sessions and undercounts real mismatches.
+  const opusMismatches = sessions.filter(s => s.suggestedModel);
   if (opusMismatches.length > 2) {
     patterns.push({
       type: "model-usage",
