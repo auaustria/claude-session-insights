@@ -1312,8 +1312,7 @@ function generateAIInsights() {
     <div class="ai-loading">
       <div class="ai-spinner"></div>
       <div>
-        <div>Calling Claude CLI with ${modelId ? modelLabel(modelId) : 'default model'}...</div>
-        <div style="font-size:11px; color:var(--text3); margin-top:2px">Streaming response — tokens appear as they arrive</div>
+        <div>Generating with ${modelId ? modelLabel(modelId) : 'default model'}, please wait...</div>
         ${wasActive ? '<div style="font-size:11px; color:var(--yellow); margin-top:4px">Auto-refresh paused while generating</div>' : ''}
       </div>
     </div>
@@ -1349,7 +1348,7 @@ async function streamAIFetch(modelParam, body) {
           if (currentEvent === 'model') {
             usedModel = JSON.parse(data);
             const loading = body.querySelector('.ai-loading div div:first-child');
-            if (loading) loading.textContent = 'Streaming from ' + (modelLabel(usedModel)) + '...';
+            if (loading) loading.textContent = 'Generating with ' + (modelLabel(usedModel)) + ', please wait...';
           } else if (currentEvent === 'chunk') {
             fullContent += JSON.parse(data);
             const el = document.getElementById('ai-stream-content');
