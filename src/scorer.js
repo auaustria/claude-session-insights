@@ -306,13 +306,97 @@ const BADGE_DEFINITIONS = [
   },
 ];
 
+const NEGATIVE_BADGE_DEFINITIONS = [
+  {
+    id: "opus-addict",
+    name: "Opus Addict",
+    description: "You're reaching for the most expensive model even when a cheaper one would do the job just as well — that's a lot of money left on the table.",
+    criteria: ">70% of sessions use Opus when Sonnet would suffice",
+    test: (sessions, scoredSessions) => {
+      if (!scoredSessions || scoredSessions.length < 5) return false;
+      const opusMisuse = scoredSessions.filter((s) => {
+        const model = s.model || "";
+        return model.includes("opus") && s.dimensions.modelFit <= 60;
+      });
+      return opusMisuse.length / scoredSessions.length > 0.7;
+    },
+  },
+  {
+    id: "token-furnace",
+    name: "Token Furnace",
+    description: "Your sessions burn through tokens like firewood — try being more specific in prompts and clearing context when it gets stale.",
+    criteria: "Average cost per user message > $0.50 across 5+ sessions",
+    test: (sessions) => {
+      const qualifying = sessions.filter((s) => s.totals.userMessages >= 3);
+      if (qualifying.length < 5) return false;
+      const avgCostPerMsg =
+        qualifying.reduce((sum, s) => sum + s.totals.estimatedCost / s.totals.userMessages, 0) /
+        qualifying.length;
+      return avgCostPerMsg > 0.5;
+    },
+  },
+  {
+    id: "context-hoarder",
+    name: "Context Hoarder",
+    description: "You let context bloat until every turn costs a fortune — a well-timed /clear can cut costs dramatically.",
+    criteria: "Cost inflection without /clear in 50%+ of long sessions",
+    test: (sessions) => {
+      const longSessions = sessions.filter(
+        (s) => s.turns.filter((t) => t.role === "assistant" && t.cost).length >= 6
+      );
+      if (longSessions.length < 3) return false;
+      let inflatedCount = 0;
+      for (const s of longSessions) {
+        const inflection = findCostInflection(s);
+        if (inflection !== null && !s.clearPoints.some((cp) => Math.abs(cp - inflection) <= 5)) {
+          inflatedCount++;
+        }
+      }
+      return inflatedCount / longSessions.length >= 0.5;
+    },
+  },
+  {
+    id: "vague-commander",
+    name: "Vague Commander",
+    description: "Claude spends more time guessing what you want than doing it — adding file paths, line numbers, and specifics to your prompts would save a lot of tokens.",
+    criteria: ">30% of prompts are vague and trigger expensive responses",
+    test: (sessions) => {
+      let totalUser = 0;
+      let vagueCount = 0;
+      for (const s of sessions) {
+        const userTurns = s.turns.filter((t) => t.role === "user");
+        totalUser += userTurns.length;
+        for (const turn of userTurns) {
+          if (turn.promptLength < 30) {
+            const turnIdx = s.turns.indexOf(turn);
+            const nextAssistant = s.turns.slice(turnIdx + 1).find((t) => t.role === "assistant");
+            if (nextAssistant && nextAssistant.tokens.input + nextAssistant.tokens.output > 50_000) {
+              vagueCount++;
+            }
+          }
+        }
+      }
+      return totalUser >= 10 && vagueCount / totalUser > 0.3;
+    },
+  },
+];
+
 export function evaluateBadges(sessions, scoredSessions) {
-  return BADGE_DEFINITIONS.filter((b) => b.test(sessions, scoredSessions)).map((b) => ({
+  const positive = BADGE_DEFINITIONS.filter((b) => b.test(sessions, scoredSessions)).map((b) => ({
     id: b.id,
     name: b.name,
     description: b.description,
     criteria: b.criteria,
+    negative: false,
   }));
+  const negative = NEGATIVE_BADGE_DEFINITIONS.filter((b) => b.test(sessions, scoredSessions)).map((b) => ({
+    id: b.id,
+    name: b.name,
+    description: b.description,
+    criteria: b.criteria,
+    negative: true,
+  }));
+  return [...positive, ...negative];
 }
 
 // --- Aggregate scoring ---
