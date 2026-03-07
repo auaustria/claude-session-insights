@@ -10,6 +10,7 @@ import { scoreAllSessions } from "./scorer.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(await readFile(join(__dirname, "..", "package.json"), "utf8"));
 const ROOT_DIR = join(__dirname, "..");
 const PUBLIC_DIR = join(ROOT_DIR, "public");
 
@@ -81,6 +82,7 @@ export function startServer(port = 3456) {
           tips: data.tips.slice(0, 20),
           dailyScores: data.dailyScores,
           overallSummary: data.overallSummary,
+          version: pkg.version,
           account: {
             subscriptionType: account.subscriptionType || null,
             orgName: account.orgName || null,
