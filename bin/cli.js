@@ -11,7 +11,7 @@ if (args.includes("--help") || args.includes("-h")) {
 Usage:
   claude-insights               Open the dashboard
   claude-insights export        Generate team-export.json
-  claude-insights --port 8080   Custom port (default: 3456)
+  claude-insights --port 8080   Custom port (default: 6543)
   claude-insights --no-open     Don't auto-launch browser
   claude-insights --help        Show this help`);
   process.exit(0);
@@ -31,7 +31,7 @@ if (args[0] === "export") {
 
 // Dashboard mode
 const portIdx = args.indexOf("--port");
-const port = portIdx !== -1 ? parseInt(args[portIdx + 1], 10) : 3456;
+const port = portIdx !== -1 ? parseInt(args[portIdx + 1], 10) : 6543;
 const noOpen = args.includes("--no-open");
 
 startServer(port);

@@ -41,7 +41,7 @@ function json(res, data, status = 200) {
   res.end(JSON.stringify(data));
 }
 
-export function startServer(port = 3456) {
+export function startServer(port = 6543) {
   // SSE clients for live reload
   const sseClients = new Set();
 

@@ -24,14 +24,14 @@ Think "Spotify Wrapped" for your Claude Code usage — scores, summaries, badges
 npx claude-insights
 ```
 
-That's it. Opens a dashboard at `http://localhost:3456` showing all your Claude Code sessions.
+That's it. Opens a dashboard at `http://localhost:6543` showing all your Claude Code sessions.
 
 ## Commands
 
 ```bash
 npx claude-insights                # open the dashboard
 npx claude-insights export         # generate team-export.json
-npx claude-insights --port 8080    # custom port (default: 3456)
+npx claude-insights --port 8080    # custom port (default: 6543)
 npx claude-insights --no-open      # don't auto-launch browser
 npx claude-insights --help         # show help
 ```
