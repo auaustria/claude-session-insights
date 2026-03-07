@@ -262,6 +262,10 @@ export function getCachedAnalysis() {
   return cachedResult;
 }
 
+export function clearCachedAnalysis() {
+  cachedResult = null;
+}
+
 export function getAvailableModels() {
   return {
     models: MODELS,

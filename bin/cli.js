@@ -37,11 +37,13 @@ const noOpen = args.includes("--no-open");
 startServer(port);
 
 if (!noOpen) {
-  // Dynamic import — no hard dependency on 'open'
-  try {
-    const { default: open } = await import("open");
-    open(`http://localhost:${port}`);
-  } catch {
-    console.log(`Open http://localhost:${port} in your browser`);
-  }
+  const url = `http://localhost:${port}`;
+  const { exec } = await import("node:child_process");
+  const cmd =
+    process.platform === "darwin"
+      ? `open "${url}"`
+      : process.platform === "win32"
+        ? `start "${url}"`
+        : `xdg-open "${url}"`;
+  exec(cmd);
 }

@@ -324,12 +324,22 @@
     font-size: 11px; margin-top: 10px; padding: 0; transition: color 0.15s;
   }
   .score-info-toggle:hover { color: var(--accent); }
-  .score-breakdown {
-    display: none; background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 22px 26px; margin-bottom: 24px;
-    box-shadow: var(--shadow-card);
+  .score-breakdown-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    z-index: 1000; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
   }
-  .score-breakdown.open { display: block; }
+  .score-breakdown-overlay.open { display: flex; }
+  .score-breakdown {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 22px 26px; max-width: 540px; width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18); position: relative;
+  }
+  .score-breakdown-close {
+    position: absolute; top: 12px; right: 14px; background: none; border: none;
+    color: var(--text3); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px;
+  }
+  .score-breakdown-close:hover { color: var(--text); }
   .score-breakdown h3 {
     font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px;
     color: var(--text2); margin-bottom: 14px; font-weight: 600;
@@ -951,7 +961,9 @@ function renderDashboard(data) {
         </div>
       </div>
     </section>
-    <div class="score-breakdown" id="score-breakdown">
+    <div class="score-breakdown-overlay" id="score-breakdown-overlay" onclick="if(event.target===this)toggleScoreBreakdown()">
+    <div class="score-breakdown">
+      <button class="score-breakdown-close" onclick="toggleScoreBreakdown()">&times;</button>
       <h3>How Efficiency Score Works</h3>
       <p>Each session is scored 0-100 across five dimensions. The overall score is a weighted average of recent sessions (last 7 days).</p>
       <div class="dim-explain">
@@ -981,6 +993,7 @@ function renderDashboard(data) {
           <span class="dim-explain-desc">Flags vague prompts (under 30 chars) that lead to expensive responses. Specific prompts produce cheaper, more accurate results.</span>
         </div>
       </div>
+    </div>
     </div>
     <div class="stats">
       <div class="stat"><div class="value">${data.sessions.length}</div><div class="label">Sessions</div></div>
@@ -1179,7 +1192,7 @@ function renderSession(s) {
 }
 
 function toggleScoreBreakdown() {
-  const el = document.getElementById('score-breakdown');
+  const el = document.getElementById('score-breakdown-overlay');
   if (el) el.classList.toggle('open');
 }
 
@@ -1262,8 +1275,25 @@ function renderAIComplete(content, generatedAt, model) {
       ${model ? ` · ${modelLabel(model)}` : ''}
       <div style="margin-top: 10px;" class="ai-controls">
         <button class="ai-generate-btn" style="padding: 5px 14px; font-size: 11px;" onclick="generateAIInsights()">Regenerate</button>
+        <button class="ai-generate-btn" style="padding: 5px 14px; font-size: 11px; background: var(--surface2); color: var(--text2);" onclick="clearAIInsights()">Clear</button>
         <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
       </div>
+    </div>`;
+  renderModelPicker();
+}
+
+function clearAIInsights() {
+  fetch('/api/ai-analyze', { method: 'DELETE' }).catch(() => {});
+  const body = document.getElementById('ai-insights-body');
+  if (!body) return;
+  body.innerHTML = `
+    <div class="ai-controls">
+      <button class="ai-generate-btn" onclick="generateAIInsights()">Generate AI Insights</button>
+      <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
+    </div>
+    <div class="ai-token-warning">
+      <span class="warn-icon">⚠</span>
+      <span>This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.</span>
     </div>`;
   renderModelPicker();
 }
@@ -1451,10 +1481,13 @@ function resumeAutoRefreshIfPaused() {
   }
 }
 
+// Clear AI insights on fresh page load (not on in-app refresh)
+fetch('/api/ai-analyze', { method: 'DELETE' }).catch(() => {});
+
 fetchData().then(data => {
   currentData = data;
   renderDashboard(data);
-  loadCachedAIInsights();
+  loadCachedAIInsights(); // loads model list (cache already cleared above)
   if (autoRefreshActive) startAutoRefresh();
 });
 
