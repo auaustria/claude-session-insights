@@ -75,15 +75,34 @@ function scoreContextManagement(session) {
 
 function scoreModelFit(session) {
   const model = session.model || "";
-  const { userMessages, totalTokens } = session.totals;
+  const { userMessages, toolCalls, estimatedCost } = session.totals;
   const isOpus = model.includes("opus");
 
-  if (!isOpus) return 80; // non-opus is generally fine
+  if (!isOpus) return 80;
 
-  // Opus on a simple task?
-  if (userMessages <= 10 && totalTokens < 200_000) return 30;
-  if (userMessages <= 5) return 40;
-  return 80; // opus on a complex task is appropriate
+  // Tool-to-message ratio: high ratio = mechanical work (edits, grep, bash)
+  const toolRatio = userMessages > 0 ? toolCalls / userMessages : 0;
+
+  // Cost per user message: how expensive is each interaction?
+  const costPerMsg = userMessages > 0 ? estimatedCost / userMessages : 0;
+
+  // Quick questions: few messages, low engagement — definitely Sonnet territory
+  if (userMessages <= 3) return 20;
+
+  // High tool ratio (>5x) = mostly automated work, Sonnet handles this fine
+  if (toolRatio > 5) return 40;
+
+  // Expensive per-message but tool-heavy: implementation work, not deep reasoning
+  if (toolRatio > 3 && costPerMsg > 0.5) return 50;
+
+  // Moderate sessions: some back-and-forth, some tool use
+  if (toolRatio > 2) return 60;
+
+  // Low tool ratio (<2x) with many messages = discussion/review/reasoning
+  // This is where Opus genuinely shines
+  if (userMessages >= 10 && toolRatio <= 2) return 90;
+
+  return 75;
 }
 
 function scorePromptSpecificity(session) {
@@ -114,11 +133,11 @@ function scorePromptSpecificity(session) {
 
 export function scoreSession(session) {
   const dimensions = {
-    toolRatio: scoreToolRatio(session),
-    cacheHitRate: scoreCacheHitRate(session),
-    contextManagement: scoreContextManagement(session),
-    modelFit: scoreModelFit(session),
-    promptSpecificity: scorePromptSpecificity(session),
+    toolRatio: Math.round(scoreToolRatio(session)),
+    cacheHitRate: Math.round(scoreCacheHitRate(session)),
+    contextManagement: Math.round(scoreContextManagement(session)),
+    modelFit: Math.round(scoreModelFit(session)),
+    promptSpecificity: Math.round(scorePromptSpecificity(session)),
   };
 
   const score = Math.round(
@@ -128,7 +147,20 @@ export function scoreSession(session) {
     )
   );
 
-  return { score, dimensions };
+  const suggestedModel = suggestModel(session, dimensions);
+  return { score, dimensions, suggestedModel };
+}
+
+function suggestModel(session, dimensions) {
+  const model = session.model || "";
+  const isOpus = model.includes("opus");
+  const isHaiku = model.includes("haiku");
+
+  if (isOpus && dimensions.modelFit <= 20) return "haiku";
+  if (isOpus && dimensions.modelFit <= 60) return "sonnet";
+  if (isHaiku && dimensions.modelFit < 60) return "sonnet";
+
+  return null;
 }
 
 // --- Tips ---
@@ -287,10 +319,10 @@ export function evaluateBadges(sessions, scoredSessions) {
 
 export function scoreAllSessions(sessions) {
   const scored = sessions.map((session) => {
-    const { score, dimensions } = scoreSession(session);
+    const { score, dimensions, suggestedModel } = scoreSession(session);
     const tips = generateTips(session);
     const summary = generateSessionSummary({ ...session, score, dimensions, tips });
-    return { ...session, score, dimensions, tips, summary };
+    return { ...session, score, dimensions, suggestedModel, tips, summary };
   });
 
   const recentSessions = scored.filter((s) => {

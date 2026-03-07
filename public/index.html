@@ -22,7 +22,7 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     background: var(--bg); color: var(--text);
-    line-height: 1.5; padding: 24px; max-width: 1200px; margin: 0 auto;
+    line-height: 1.5; padding: 24px; max-width: 1400px; margin: 0 auto;
   }
   header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
   header h1 { font-size: 20px; font-weight: 600; }
@@ -86,18 +86,29 @@
   }
   .tip .tip-project { color: var(--text2); font-size: 12px; margin-top: 4px; }
 
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 10px 12px; color: var(--text2); font-weight: 500;
+  .table-wrap { overflow-x: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  th { text-align: left; padding: 8px 6px; color: var(--text2); font-weight: 500;
     border-bottom: 1px solid var(--border); cursor: pointer; white-space: nowrap;
-    user-select: none; }
+    user-select: none; overflow: hidden; }
   th:hover { color: var(--text); }
-  th .sort-arrow { font-size: 10px; margin-left: 4px; }
-  td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th .sort-arrow { font-size: 10px; margin-left: 2px; }
+  td { padding: 8px 6px; border-bottom: 1px solid var(--border); overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
+  td.multi-line { white-space: normal; text-align: left; }
+  td.center { text-align: center; }
+  th.center { text-align: center; }
+  .td-sub { color: var(--text2); font-size: 11px; margin-top: 2px; }
   tr.clickable { cursor: pointer; }
   tr.clickable:hover td { background: var(--surface2); }
-  .session-title { color: var(--text2); font-size: 12px; max-width: 300px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .session-title { color: var(--text2); font-size: 12px; padding-left: 4px;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden; white-space: normal; line-height: 1.4; text-align: left; }
+  .col-date { width: 11%; } .col-prompt { width: 22%; }
+  .col-model { width: 8%; } .col-suggested { width: 8%; }
+  .col-score { width: 6%; } .col-msgs { width: 6%; }
+  .col-tokens { width: 9%; } .col-tools { width: 6%; } .col-cache { width: 7%; }
+  .col-cost { width: 8%; }
   .model-tag {
     display: inline-block; padding: 2px 8px; border-radius: 4px;
     font-size: 11px; font-weight: 500; white-space: nowrap;
@@ -166,6 +177,18 @@
     margin-bottom: 24px; border-left: 3px solid var(--accent);
   }
 
+
+  .suggested-model-card {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--purple);
+    border-radius: 8px; padding: 14px 20px; margin-bottom: 24px;
+  }
+  .suggested-model-label {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--purple); font-weight: 600;
+  }
+  .suggested-model-value .model-tag { font-size: 14px; padding: 4px 12px; }
+  .suggested-model-hint { font-size: 13px; color: var(--text2); }
 
   /* Session detail view */
   .back-btn {
@@ -307,7 +330,7 @@ function drawChart(canvas, dailyScores) {
     return;
   }
 
-  const maxCost = Math.max(...dailyScores.map(d => d.cost), 1);
+  const maxTokens = Math.max(...dailyScores.map(d => d.tokens), 1);
   const barWidth = Math.min(40, (plotW / dailyScores.length) * 0.7);
   const gap = plotW / dailyScores.length;
 
@@ -316,13 +339,13 @@ function drawChart(canvas, dailyScores) {
     const y = pad.top + (plotH / 4) * i;
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
     ctx.fillStyle = '#8b949e'; ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'right';
-    const val = maxCost - (maxCost / 4) * i;
-    ctx.fillText('$' + val.toFixed(val >= 10 ? 0 : 1), pad.left - 8, y + 4);
+    const val = maxTokens - (maxTokens / 4) * i;
+    ctx.fillText(formatTokens(Math.round(val)), pad.left - 8, y + 4);
   }
 
   dailyScores.forEach((d, i) => {
     const x = pad.left + gap * i + (gap - barWidth) / 2;
-    const barH = (d.cost / maxCost) * plotH;
+    const barH = (d.tokens / maxTokens) * plotH;
     const y = pad.top + plotH - barH;
     ctx.fillStyle = d.score >= 80 ? '#3fb950' : d.score >= 50 ? '#d29922' : '#f85149';
     ctx.beginPath(); ctx.roundRect(x, y, barWidth, barH, [3, 3, 0, 0]); ctx.fill();
@@ -455,7 +478,7 @@ function renderDashboard(data) {
         <div class="dim-explain-row">
           <span class="dim-explain-weight">15%</span>
           <span class="dim-explain-name">Model Fit</span>
-          <span class="dim-explain-desc">Checks if you're using Opus only for complex tasks. Short, simple sessions are better suited for Sonnet at a fraction of the cost.</span>
+          <span class="dim-explain-desc">Checks if Opus is justified based on the tool-to-message ratio. High tool ratio means mechanical work (edits, searches) that Sonnet handles fine. Low ratio with many messages means reasoning-heavy work where Opus shines.</span>
         </div>
         <div class="dim-explain-row">
           <span class="dim-explain-weight">10%</span>
@@ -483,37 +506,64 @@ function renderDashboard(data) {
       <div class="stat"><div class="value">${(avgCacheHit * 100).toFixed(0)}%</div><div class="label">Avg Cache Hit Rate</div></div>
     </div>
     <section>
-      <h2>Daily Usage & Score</h2>
+      <h2>Daily Token Usage & Score</h2>
       <div class="chart-container"><canvas id="chart" style="height:200px"></canvas></div>
+    </section>
+    <section>
+      <h2>Top 5 Sessions by Cost</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:11%">Date</th>
+            <th style="width:40%">Prompt</th>
+            <th class="center" style="width:9%">Model</th>
+            <th class="center" style="width:9%">Suggested</th>
+            <th class="center" style="width:7%">Score</th>
+            <th class="center" style="width:8%">Tokens</th>
+            <th class="center" style="width:8%">Cost</th>
+          </tr></thead>
+          <tbody>
+            ${[...data.sessions].sort((a, b) => b.totals.estimatedCost - a.totals.estimatedCost).slice(0, 5).map(s => `<tr class="clickable" data-id="${s.id}">
+              <td class="multi-line">${formatDate(s.startTime)}<div class="td-sub">${s.project}</div></td>
+              <td><div class="session-title">${escHtml(s.title)}</div></td>
+              <td class="center">${formatModel(s.model)}</td>
+              <td class="center">${s.suggestedModel ? formatModel('claude-' + s.suggestedModel) : '-'}</td>
+              <td class="center">${scorePill(s.score)}</td>
+              <td class="center">${formatTokens(s.totals.totalTokens)}</td>
+              <td class="center">${formatCost(s.totals.estimatedCost)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
     </section>
     <section>
       <h2>Sessions</h2>
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th data-col="startTime">Date ${arrow('startTime')}</th>
-            <th data-col="project">Project ${arrow('project')}</th>
-            <th>Session</th>
-            <th>Model</th>
-            <th data-col="score">Score ${arrow('score')}</th>
-            <th>Msgs</th>
-            <th data-col="tokens">Tokens ${arrow('tokens')}</th>
-            <th>Tools</th>
-            <th>Cache</th>
-            <th data-col="cost">Cost ${arrow('cost')}</th>
+            <th class="col-date" data-col="startTime">Date ${arrow('startTime')}</th>
+            <th class="col-prompt">Prompt</th>
+            <th class="col-model center">Model</th>
+            <th class="col-suggested center">Suggested</th>
+            <th class="col-score center" data-col="score">Score ${arrow('score')}</th>
+            <th class="col-msgs center">Msgs</th>
+            <th class="col-tokens center" data-col="tokens">Tokens ${arrow('tokens')}</th>
+            <th class="col-tools center">Tools</th>
+            <th class="col-cache center">Cache</th>
+            <th class="col-cost center" data-col="cost">Cost ${arrow('cost')}</th>
           </tr></thead>
           <tbody>
             ${sorted.map(s => `<tr class="clickable" data-id="${s.id}">
-              <td style="white-space:nowrap">${formatDate(s.startTime)}</td>
-              <td>${s.project}</td>
+              <td class="multi-line">${formatDate(s.startTime)}<div class="td-sub">${s.project}</div></td>
               <td><div class="session-title">${escHtml(s.title)}</div></td>
-              <td>${formatModel(s.model)}</td>
-              <td>${scorePill(s.score)}</td>
-              <td>${s.totals.userMessages}</td>
-              <td>${formatTokens(s.totals.totalTokens)}</td>
-              <td>${s.totals.toolCalls}</td>
-              <td>${(s.totals.cacheHitRate * 100).toFixed(0)}%</td>
-              <td>${formatCost(s.totals.estimatedCost)}</td>
+              <td class="center">${formatModel(s.model)}</td>
+              <td class="center">${s.suggestedModel ? formatModel('claude-' + s.suggestedModel) : '-'}</td>
+              <td class="center">${scorePill(s.score)}</td>
+              <td class="center">${s.totals.userMessages}</td>
+              <td class="center">${formatTokens(s.totals.totalTokens)}</td>
+              <td class="center">${s.totals.toolCalls}</td>
+              <td class="center">${(s.totals.cacheHitRate * 100).toFixed(0)}%</td>
+              <td class="center">${formatCost(s.totals.estimatedCost)}</td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -575,6 +625,12 @@ function renderSession(s) {
         <span>Cache: ${(s.totals.cacheHitRate * 100).toFixed(0)}%</span>
       </div>
     </div>
+
+    ${s.suggestedModel ? `<div class="suggested-model-card">
+      <span class="suggested-model-label">Suggested Model</span>
+      <span class="suggested-model-value">${formatModel('claude-' + s.suggestedModel)}</span>
+      <span class="suggested-model-hint">A different model may be more cost-efficient for this type of session</span>
+    </div>` : ''}
 
     ${s.summary ? `<div class="session-summary">${escHtml(s.summary)}</div>` : ''}
 

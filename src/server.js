@@ -96,6 +96,7 @@ export function startServer(port = 3456) {
             dimensions: s.dimensions,
             tips: s.tips,
             totals: s.totals,
+            suggestedModel: s.suggestedModel,
             summary: s.summary,
           })),
         };
@@ -122,6 +123,7 @@ export function startServer(port = 3456) {
           dimensions: session.dimensions,
           totals: session.totals,
           clearPoints: session.clearPoints,
+          suggestedModel: session.suggestedModel,
           summary: session.summary,
           turns: session.turns.map((t) => ({
             role: t.role,
