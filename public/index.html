@@ -136,25 +136,6 @@
     margin-bottom: 24px; border-left: 3px solid var(--accent);
   }
 
-  /* Plan savings */
-  .savings-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 24px; margin-bottom: 32px;
-  }
-  .savings-card h3 { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
-  .plan-select {
-    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-    padding: 6px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px;
-    cursor: pointer;
-  }
-  .plan-select:focus { border-color: var(--accent); outline: none; }
-  .savings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-  .savings-item { padding: 12px; background: var(--surface2); border-radius: 8px; }
-  .savings-item .s-label { font-size: 12px; color: var(--text2); }
-  .savings-item .s-value { font-size: 22px; font-weight: 600; }
-  .savings-item .s-value.positive { color: var(--green); }
-  .savings-item .s-value.negative { color: var(--red); }
-  .savings-note { font-size: 11px; color: var(--text2); margin-top: 12px; }
 
   /* Session detail view */
   .back-btn {
@@ -276,30 +257,6 @@ function dimColor(score) {
 function escHtml(s) {
   if (!s) return '';
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// Subscription plans — monthly cost per seat
-const PLANS = {
-  'pro': { name: 'Pro', cost: 20 },
-  'max-5x': { name: 'Max (5x)', cost: 100 },
-  'max-20x': { name: 'Max (20x)', cost: 200 },
-  'team': { name: 'Team', cost: 25 },
-  'team-max-5x': { name: 'Team Max (5x)', cost: 100 },
-  'team-max-20x': { name: 'Team Max (20x)', cost: 200 },
-  'enterprise': { name: 'Enterprise', cost: 25 },
-  'enterprise-max-5x': { name: 'Enterprise Max (5x)', cost: 100 },
-  'enterprise-max-20x': { name: 'Enterprise Max (20x)', cost: 200 },
-};
-
-let selectedPlan = localStorage.getItem('cc-plan') || null;
-
-function calcSavings(apiCost, periodDays, planKey) {
-  const plan = PLANS[planKey];
-  const months = periodDays / 30;
-  const planCost = plan.cost * months;
-  const saved = apiCost - planCost;
-  const pct = apiCost > 0 ? (saved / apiCost) * 100 : 0;
-  return { planCost, saved, pct, planName: plan.name, months };
 }
 
 function drawChart(canvas, dailyScores) {
@@ -461,7 +418,6 @@ function renderDashboard(data) {
       <div class="stat"><div class="value">${formatCost(totalCost)}</div><div class="label">Est. API Cost</div></div>
       <div class="stat"><div class="value">${(avgCacheHit * 100).toFixed(0)}%</div><div class="label">Avg Cache Hit Rate</div></div>
     </div>
-    <div class="savings-card" id="savings-section"></div>
     <section>
       <h2>Daily Usage & Score</h2>
       <div class="chart-container"><canvas id="chart" style="height:200px"></canvas></div>
@@ -500,8 +456,6 @@ function renderDashboard(data) {
       </div>
     </section>
   `;
-
-  renderSavings(data, totalCost);
 
   const canvas = document.getElementById('chart');
   if (canvas) drawChart(canvas, data.dailyScores);
@@ -615,68 +569,6 @@ function renderSession(s) {
 
   const costCanvas = document.getElementById('cost-chart');
   if (costCanvas) drawCostPerTurn(costCanvas, s.turns);
-}
-
-function renderSavings(data, totalCost) {
-  const el = document.getElementById('savings-section');
-  if (!el) return;
-
-  const planOptions = Object.entries(PLANS).map(([k, v]) =>
-    `<option value="${k}" ${k === selectedPlan ? 'selected' : ''}>${v.name} ($${v.cost}/mo)</option>`
-  ).join('');
-
-  if (!selectedPlan) {
-    el.innerHTML = `
-      <h3>Subscription Savings</h3>
-      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-        <span style="color:var(--text2); font-size:14px;">Select your Claude plan to see how much you're saving vs API pricing</span>
-        <select class="plan-select" id="plan-picker" style="margin-bottom:0">
-          <option value="" selected disabled>Choose your plan...</option>
-          ${planOptions}
-        </select>
-      </div>
-    `;
-  } else {
-    const dates = data.sessions.map(s => s.startTime).filter(Boolean).sort();
-    const periodDays = dates.length >= 2
-      ? Math.max(1, (new Date(dates[dates.length - 1]) - new Date(dates[0])) / 86400000)
-      : 30;
-    const { planCost, saved, pct, planName, months } = calcSavings(totalCost, periodDays, selectedPlan);
-
-    el.innerHTML = `
-      <h3>Subscription Savings</h3>
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-        <select class="plan-select" id="plan-picker" style="margin-bottom:0">
-          ${planOptions}
-        </select>
-      </div>
-      <div class="savings-grid">
-        <div class="savings-item">
-          <div class="s-label">API-Equivalent Cost</div>
-          <div class="s-value">${formatCost(totalCost)}</div>
-        </div>
-        <div class="savings-item">
-          <div class="s-label">${planName} Cost (${months.toFixed(1)} mo)</div>
-          <div class="s-value">${formatCost(planCost)}</div>
-        </div>
-        <div class="savings-item">
-          <div class="s-label">You Saved</div>
-          <div class="s-value ${saved >= 0 ? 'positive' : 'negative'}">${saved >= 0 ? '+' : ''}${formatCost(saved)}</div>
-        </div>
-        <div class="savings-item">
-          <div class="s-label">Savings Rate</div>
-          <div class="s-value ${saved >= 0 ? 'positive' : 'negative'}">${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%</div>
-        </div>
-      </div>
-      <div class="savings-note">Compares what your usage would cost at API rates vs your ${planName} subscription. Higher savings = more value from your plan.</div>
-    `;
-  }
-
-  document.getElementById('plan-picker').addEventListener('change', (e) => {
-    selectedPlan = e.target.value;
-    localStorage.setItem('cc-plan', selectedPlan);
-    renderSavings(data, totalCost);
-  });
 }
 
 function goBack() {

@@ -10,7 +10,6 @@ Think "Spotify Wrapped" for your Claude Code usage — scores, summaries, badges
 - **Overall Summary** — natural-language assessment of your prompting habits with specific recommendations ("31% of sessions have high tool-call ratios — include file paths and function names to reduce searching")
 - **Per-Session Summary** — each session gets a plain-English breakdown of what happened, what went well, and what could improve
 - **Session Drill-down** — click any session to see the full conversation timeline with per-turn token counts, costs, tool calls, and prompt previews
-- **Subscription Savings** — compare your API-equivalent usage cost against your Claude plan to see how much you're saving
 - **Badges** — behavioral achievements like Surgical Prompter, Cache Whisperer, and Efficiency Diamond
 
 ## Quick Start
