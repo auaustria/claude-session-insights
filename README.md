@@ -102,7 +102,9 @@ You can pick which model to use (Sonnet, Opus, or Haiku) from the model picker. 
 | Context Hoarder | Cost inflection without /clear in 50%+ of long sessions |
 | Vague Commander | >30% of prompts are vague and trigger expensive responses |
 
-## Team Export
+## Team Export *(experimental — not yet tested)*
+
+> **Note:** This feature is experimental and has not been thoroughly tested. Use at your own risk — the output format may change in future versions.
 
 Generate a privacy-safe snapshot to share with your team lead:
 
