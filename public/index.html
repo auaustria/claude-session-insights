@@ -6,27 +6,96 @@
 <title>claude-insights</title>
 <style>
   :root {
+    --radius: 10px;
+    --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', ui-monospace, monospace;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-tooltip: 0 4px 12px rgba(0,0,0,0.1);
+    color-scheme: light;
+  }
+
+  /* Light theme (default) */
+  :root, [data-theme="light"] {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface2: #f0f1f4;
+    --surface3: #e4e6eb;
+    --border: rgba(0,0,0,0.08);
+    --border-hover: rgba(0,0,0,0.16);
+    --text: #1a1d23;
+    --text2: #5c6370;
+    --text3: #8b919a;
+    --accent: #2563eb;
+    --accent-dim: rgba(37,99,235,0.1);
+    --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.1);
+    --yellow: #ca8a04;
+    --yellow-dim: rgba(202,138,4,0.1);
+    --red: #dc2626;
+    --red-dim: rgba(220,38,38,0.1);
+    --purple: #7c3aed;
+    --purple-dim: rgba(124,58,237,0.1);
+    --chart-score-label: #ffffff;
+    --chart-grid: rgba(0,0,0,0.06);
+    --chart-axis: #8b919a;
+  }
+
+  /* Dark theme */
+  [data-theme="dark"] {
     --bg: #0c0f14;
     --surface: #14181f;
     --surface2: #1c2029;
     --surface3: #242830;
-    --border: rgba(255,255,255,0.06);
-    --border-hover: rgba(255,255,255,0.12);
+    --border: rgba(255,255,255,0.08);
+    --border-hover: rgba(255,255,255,0.15);
     --text: #d8dce4;
-    --text2: #6e7681;
-    --text3: #484f58;
+    --text2: #8b919a;
+    --text3: #5c6370;
     --accent: #6ea4f7;
-    --accent-dim: rgba(110,164,247,0.12);
+    --accent-dim: rgba(110,164,247,0.14);
     --green: #56d364;
-    --green-dim: rgba(86,211,100,0.12);
+    --green-dim: rgba(86,211,100,0.14);
     --yellow: #e3b341;
-    --yellow-dim: rgba(227,179,65,0.12);
+    --yellow-dim: rgba(227,179,65,0.14);
     --red: #f47067;
-    --red-dim: rgba(244,112,103,0.12);
+    --red-dim: rgba(244,112,103,0.14);
     --purple: #d2a8ff;
-    --purple-dim: rgba(210,168,255,0.12);
-    --radius: 10px;
-    --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', ui-monospace, monospace;
+    --purple-dim: rgba(210,168,255,0.14);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.2);
+    --shadow-tooltip: 0 8px 24px rgba(0,0,0,0.5);
+    --chart-score-label: #0c0f14;
+    --chart-grid: rgba(255,255,255,0.05);
+    --chart-axis: #5c6370;
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c0f14;
+      --surface: #14181f;
+      --surface2: #1c2029;
+      --surface3: #242830;
+      --border: rgba(255,255,255,0.08);
+      --border-hover: rgba(255,255,255,0.15);
+      --text: #d8dce4;
+      --text2: #8b919a;
+      --text3: #5c6370;
+      --accent: #6ea4f7;
+      --accent-dim: rgba(110,164,247,0.14);
+      --green: #56d364;
+      --green-dim: rgba(86,211,100,0.14);
+      --yellow: #e3b341;
+      --yellow-dim: rgba(227,179,65,0.14);
+      --red: #f47067;
+      --red-dim: rgba(244,112,103,0.14);
+      --purple: #d2a8ff;
+      --purple-dim: rgba(210,168,255,0.14);
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.2);
+      --shadow-tooltip: 0 8px 24px rgba(0,0,0,0.5);
+      --chart-score-label: #0c0f14;
+      --chart-grid: rgba(255,255,255,0.05);
+      --chart-axis: #5c6370;
+      color-scheme: dark;
+    }
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -51,12 +120,22 @@
     color: var(--text2); background: var(--surface2);
     padding: 2px 8px; border-radius: 5px;
   }
+  .header-actions { display: flex; align-items: center; gap: 8px; }
   .refresh-btn {
     background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
     padding: 7px 16px; border-radius: 7px; cursor: pointer; font-size: 12px;
     font-weight: 500; transition: all 0.2s;
   }
   .refresh-btn:hover {
+    background: var(--surface3); color: var(--text); border-color: var(--border-hover);
+  }
+  .theme-toggle {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+    width: 34px; height: 34px; border-radius: 7px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-size: 16px; line-height: 1; padding: 0;
+  }
+  .theme-toggle:hover {
     background: var(--surface3); color: var(--text); border-color: var(--border-hover);
   }
 
@@ -71,7 +150,7 @@
   .score-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 28px 36px; text-align: center;
-    position: relative; overflow: hidden;
+    position: relative; overflow: hidden; box-shadow: var(--shadow-card);
   }
   .score-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
@@ -88,7 +167,7 @@
   .badges-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 18px 22px; flex: 1;
-    overflow: visible; position: relative; z-index: 5;
+    overflow: visible; position: relative; z-index: 5; box-shadow: var(--shadow-card);
   }
   .badges-card h3 {
     font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
@@ -119,7 +198,7 @@
     background: var(--surface3); border: 1px solid var(--border-hover);
     border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--text2);
     width: 280px; line-height: 1.5; z-index: 20; pointer-events: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5); text-align: left;
+    box-shadow: var(--shadow-tooltip); text-align: left;
   }
   .badge:hover .badge-tip { display: block; }
 
@@ -130,7 +209,7 @@
   }
   .stat {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 18px 20px;
+    border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-card);
   }
   .stat .value {
     font-family: var(--mono); font-size: 22px; font-weight: 600;
@@ -149,7 +228,7 @@
   /* Chart */
   .chart-container {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 20px; overflow-x: auto;
+    border-radius: var(--radius); padding: 20px; overflow-x: auto; box-shadow: var(--shadow-card);
   }
   canvas { width: 100%; height: 200px; }
 
@@ -224,6 +303,7 @@
   .score-breakdown {
     display: none; background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 22px 26px; margin-bottom: 24px;
+    box-shadow: var(--shadow-card);
   }
   .score-breakdown.open { display: block; }
   .score-breakdown h3 {
@@ -248,7 +328,7 @@
   .summary-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 24px 28px; margin-bottom: 24px;
-    height: 100%;
+    height: 100%; box-shadow: var(--shadow-card);
   }
   .summary-card.standalone { height: auto; }
   .summary-card h3 {
@@ -268,7 +348,7 @@
     display: none; position: absolute; top: calc(100% + 6px); left: 50%;
     transform: translateX(-50%); width: 230px; padding: 10px 12px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-tooltip);
     font-size: 11px; line-height: 1.6; color: var(--text2);
     font-weight: 400; text-transform: none; letter-spacing: 0; z-index: 200;
     white-space: normal; pointer-events: none;
@@ -326,7 +406,7 @@
   .session-header {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 24px 28px; margin-bottom: 24px;
-    text-align: left;
+    text-align: left; box-shadow: var(--shadow-card);
   }
   .session-header h2 {
     margin-bottom: 10px; font-size: 17px; font-weight: 600; letter-spacing: -0.3px;
@@ -344,7 +424,7 @@
   }
   .dim-item {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 16px 18px;
+    border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow-card);
   }
   .dim-item .dim-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
   .dim-item .dim-score { font-family: var(--mono); font-size: 20px; font-weight: 700; }
@@ -384,6 +464,7 @@
   .cost-chart-container {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
+    box-shadow: var(--shadow-card);
   }
 
   /* Tip styles (kept for compatibility) */
@@ -401,7 +482,7 @@
   .ai-insights-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 24px 28px; margin-bottom: 24px;
-    position: relative; overflow: visible;
+    position: relative; overflow: visible; box-shadow: var(--shadow-card);
   }
   .ai-insights-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
@@ -471,7 +552,7 @@
     position: absolute; top: calc(100% + 4px); left: 0; z-index: 100;
     background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
     padding: 4px; min-width: 140px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-tooltip);
     opacity: 0; transform: translateY(-4px); pointer-events: none;
     transition: opacity 0.15s, transform 0.15s;
   }
@@ -504,6 +585,39 @@
 
 <script>
 const $ = (s) => document.querySelector(s);
+
+// --- Theme ---
+function getPreferredTheme() {
+  const stored = localStorage.getItem('claude-insights-theme');
+  if (stored) return stored;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = theme === 'dark' ? '\u2600' : '\u263E';
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || getPreferredTheme();
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('claude-insights-theme', next);
+  applyTheme(next);
+  // Redraw charts with new theme colors
+  if (currentView === 'dashboard' && currentData) {
+    const canvas = document.getElementById('chart');
+    if (canvas) drawChart(canvas, currentData.dailyScores);
+  }
+}
+
+applyTheme(getPreferredTheme());
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (!localStorage.getItem('claude-insights-theme')) {
+    applyTheme(getPreferredTheme());
+  }
+});
 
 async function fetchData(refresh = false) {
   if (refresh) await fetch('/api/refresh');
@@ -593,8 +707,16 @@ function drawChart(canvas, dailyScores) {
   const plotW = w - pad.left - pad.right;
   const plotH = h - pad.top - pad.bottom;
 
+  const styles = getComputedStyle(document.documentElement);
+  const chartAxis = styles.getPropertyValue('--chart-axis').trim();
+  const chartGrid = styles.getPropertyValue('--chart-grid').trim();
+  const chartScoreLabel = styles.getPropertyValue('--chart-score-label').trim();
+  const cGreen = styles.getPropertyValue('--green').trim();
+  const cYellow = styles.getPropertyValue('--yellow').trim();
+  const cRed = styles.getPropertyValue('--red').trim();
+
   if (dailyScores.length === 0) {
-    ctx.fillStyle = '#484f58'; ctx.font = '13px -apple-system, sans-serif';
+    ctx.fillStyle = chartAxis; ctx.font = '13px -apple-system, sans-serif';
     ctx.textAlign = 'center'; ctx.fillText('No daily data yet', w / 2, h / 2);
     return;
   }
@@ -604,11 +726,11 @@ function drawChart(canvas, dailyScores) {
   const gap = plotW / dailyScores.length;
 
   // Grid lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = chartGrid; ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = pad.top + (plotH / 4) * i;
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
-    ctx.fillStyle = '#484f58'; ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillStyle = chartAxis; ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'right';
     const val = maxTokens - (maxTokens / 4) * i;
     ctx.fillText(formatTokens(Math.round(val)), pad.left - 10, y + 3);
   }
@@ -619,19 +741,22 @@ function drawChart(canvas, dailyScores) {
     const y = pad.top + plotH - barH;
 
     // Bar with rounded top
-    const color = d.score >= 80 ? '#56d364' : d.score >= 50 ? '#e3b341' : '#f47067';
-    ctx.fillStyle = color + '30';
+    const color = d.score >= 80 ? cGreen : d.score >= 50 ? cYellow : cRed;
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = color;
     ctx.beginPath(); ctx.roundRect(x, y, barWidth, barH, [4, 4, 0, 0]); ctx.fill();
-    ctx.fillStyle = color + 'cc';
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = color;
     ctx.beginPath(); ctx.roundRect(x, y, barWidth, barH, [4, 4, 0, 0]); ctx.fill();
+    ctx.globalAlpha = 1;
 
     // Score label
     if (barH > 22) {
-      ctx.fillStyle = '#0c0f14'; ctx.font = 'bold 10px -apple-system, sans-serif';
+      ctx.fillStyle = chartScoreLabel; ctx.font = 'bold 10px -apple-system, sans-serif';
       ctx.textAlign = 'center'; ctx.fillText(d.score, x + barWidth / 2, y + 14);
     }
     // Date label
-    ctx.fillStyle = '#484f58'; ctx.font = '10px -apple-system, sans-serif';
+    ctx.fillStyle = chartAxis; ctx.font = '10px -apple-system, sans-serif';
     ctx.textAlign = 'center'; ctx.fillText(d.date.slice(5), x + barWidth / 2, pad.top + plotH + 20);
   });
 }
@@ -655,12 +780,17 @@ function drawCostPerTurn(canvas, turns) {
   const maxCost = Math.max(...costs);
   const step = plotW / (costs.length - 1);
 
+  const styles = getComputedStyle(document.documentElement);
+  const chartAxis = styles.getPropertyValue('--chart-axis').trim();
+  const chartGrid = styles.getPropertyValue('--chart-grid').trim();
+  const accentColor = styles.getPropertyValue('--accent').trim();
+
   // Grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = chartGrid; ctx.lineWidth = 1;
   for (let i = 0; i <= 3; i++) {
     const y = pad.top + (plotH / 3) * i;
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
-    ctx.fillStyle = '#484f58'; ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillStyle = chartAxis; ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'right';
     const val = maxCost - (maxCost / 3) * i;
     ctx.fillText('$' + val.toFixed(3), pad.left - 10, y + 3);
   }
@@ -676,8 +806,8 @@ function drawCostPerTurn(canvas, turns) {
   ctx.lineTo(pad.left, pad.top + plotH);
   ctx.closePath();
   const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotH);
-  grad.addColorStop(0, 'rgba(110,164,247,0.15)');
-  grad.addColorStop(1, 'rgba(110,164,247,0.02)');
+  grad.addColorStop(0, accentColor + '26');
+  grad.addColorStop(1, accentColor + '05');
   ctx.fillStyle = grad; ctx.fill();
 
   // Line
@@ -687,17 +817,17 @@ function drawCostPerTurn(canvas, turns) {
     const y = pad.top + plotH - (c / maxCost) * plotH;
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   });
-  ctx.strokeStyle = '#6ea4f7'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = accentColor; ctx.lineWidth = 2; ctx.stroke();
 
   // Dots
   costs.forEach((c, i) => {
     const x = pad.left + step * i;
     const y = pad.top + plotH - (c / maxCost) * plotH;
     ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
-    ctx.fillStyle = '#6ea4f7'; ctx.fill();
+    ctx.fillStyle = accentColor; ctx.fill();
   });
 
-  ctx.fillStyle = '#484f58'; ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillStyle = chartAxis; ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'center';
   ctx.fillText('Turn', pad.left + plotW / 2, h - 4);
 }
 
@@ -733,7 +863,10 @@ function renderDashboard(data) {
   $('#app').innerHTML = `
     <header>
       <h1>claude-insights <span>v${data.version}</span></h1>
-      <button class="refresh-btn" onclick="doRefresh()">Refresh</button>
+      <div class="header-actions">
+        <button class="refresh-btn" onclick="doRefresh()">Refresh</button>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="theme-toggle-btn"></button>
+      </div>
     </header>
     <div class="hero">
       <div class="hero-left">
@@ -886,6 +1019,11 @@ function renderDashboard(data) {
 
   const canvas = document.getElementById('chart');
   if (canvas) drawChart(canvas, data.dailyScores);
+
+  // Update theme toggle icon after render
+  const themeBtn = document.getElementById('theme-toggle-btn');
+  const curTheme = document.documentElement.getAttribute('data-theme') || getPreferredTheme();
+  if (themeBtn) themeBtn.textContent = curTheme === 'dark' ? '\u2600' : '\u263E';
 
   // Sort handlers
   document.querySelectorAll('th[data-col]').forEach(th => {
