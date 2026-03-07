@@ -7,7 +7,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { parseAllSessions } from "./parser.js";
 import { scoreAllSessions } from "./scorer.js";
-import { streamAIAnalysis, getCachedAnalysis, clearCachedAnalysis, getAvailableModels, killActiveProcesses, detectDefaultModel } from "./ai-analyze.js";
+import { streamAIAnalysis, getCachedAnalysis, clearCachedAnalysis, getAvailableModels, killActiveProcesses, detectDefaultModel, buildPrompt, buildDataSnapshot } from "./ai-analyze.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -157,6 +157,13 @@ export function startServer(port = 3456) {
       if (url.pathname === "/api/ai-analyze" && req.method === "DELETE") {
         clearCachedAnalysis();
         return json(res, { ok: true });
+      }
+
+      if (url.pathname === "/api/ai-prompt" && req.method === "GET") {
+        const data = await getData();
+        const dataSnapshot = buildDataSnapshot(data);
+        const prompt = buildPrompt(dataSnapshot);
+        return json(res, { prompt });
       }
 
       if (url.pathname === "/api/ai-analyze" && req.method === "GET") {

@@ -618,6 +618,32 @@
     display: flex; align-items: center; gap: 6px;
   }
   .ai-model-label .model-tag { font-size: 10px; padding: 2px 8px; }
+  .ai-prompt-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    z-index: 1000; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .ai-prompt-overlay.open { display: flex; }
+  .ai-prompt-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 22px 26px; max-width: 680px; width: 90%;
+    max-height: 80vh; display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18); position: relative;
+  }
+  .ai-prompt-box h3 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--text2); margin-bottom: 14px; font-weight: 600;
+  }
+  .ai-prompt-box pre {
+    font-family: var(--mono); font-size: 11px; line-height: 1.6;
+    color: var(--text); background: var(--surface2); border-radius: 6px;
+    padding: 14px; overflow: auto; flex: 1; white-space: pre-wrap; word-break: break-word;
+  }
+  .ai-prompt-close {
+    position: absolute; top: 12px; right: 14px; background: none; border: none;
+    color: var(--text3); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px;
+  }
+  .ai-prompt-close:hover { color: var(--text); }
 </style>
 </head>
 <body>
@@ -954,6 +980,7 @@ function renderDashboard(data) {
             <button class="ai-generate-btn" onclick="generateAIInsights()">Generate AI Insights</button>
             <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
           </div>
+          <button class="score-info-toggle" onclick="togglePromptView()">What prompt is it sending to Claude?</button>
           <div class="ai-token-warning">
             <span class="warn-icon">⚠</span>
             <span>This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.</span>
@@ -994,6 +1021,13 @@ function renderDashboard(data) {
         </div>
       </div>
     </div>
+    </div>
+    <div class="ai-prompt-overlay" id="ai-prompt-overlay" onclick="if(event.target===this)togglePromptView()">
+      <div class="ai-prompt-box">
+        <button class="ai-prompt-close" onclick="togglePromptView()">&times;</button>
+        <h3>AI Insights Prompt</h3>
+        <pre id="ai-prompt-content">Loading...</pre>
+      </div>
     </div>
     <div class="stats">
       <div class="stat"><div class="value">${data.sessions.length}</div><div class="label">Sessions</div></div>
@@ -1278,6 +1312,7 @@ function renderAIComplete(content, generatedAt, model) {
         <button class="ai-generate-btn" style="padding: 5px 14px; font-size: 11px; background: var(--surface2); color: var(--text2);" onclick="clearAIInsights()">Clear</button>
         <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
       </div>
+      <button class="score-info-toggle" onclick="togglePromptView()">What prompt is it sending to Claude?</button>
     </div>`;
   renderModelPicker();
 }
@@ -1291,11 +1326,30 @@ function clearAIInsights() {
       <button class="ai-generate-btn" onclick="generateAIInsights()">Generate AI Insights</button>
       <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
     </div>
+    <button class="score-info-toggle" onclick="togglePromptView()">What prompt is it sending to Claude?</button>
     <div class="ai-token-warning">
       <span class="warn-icon">⚠</span>
       <span>This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.</span>
     </div>`;
   renderModelPicker();
+}
+
+async function togglePromptView() {
+  const overlay = document.getElementById('ai-prompt-overlay');
+  if (overlay.classList.contains('open')) {
+    overlay.classList.remove('open');
+    return;
+  }
+  const pre = document.getElementById('ai-prompt-content');
+  pre.textContent = 'Loading...';
+  overlay.classList.add('open');
+  try {
+    const res = await fetch('/api/ai-prompt');
+    const { prompt } = await res.json();
+    pre.textContent = prompt;
+  } catch (e) {
+    pre.textContent = 'Failed to load prompt: ' + e.message;
+  }
 }
 
 function generateAIInsights() {

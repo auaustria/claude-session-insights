@@ -122,6 +122,8 @@ Pick the single most interesting session (most expensive, most efficient, or mos
 Keep the entire response under 400 words. Use markdown formatting.`;
 }
 
+export { buildPrompt, buildDataSnapshot };
+
 let cachedResult = null;
 const activeChildren = new Set();
 
