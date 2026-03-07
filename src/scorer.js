@@ -1,5 +1,7 @@
 // Efficiency scoring engine
-// Computes per-session score (0-100), overall score, tips, and badges.
+// Computes per-session score (0-100), overall score, tips, badges, and summaries.
+
+import { generateOverallSummary, generateSessionSummary } from "./summarizer.js";
 
 const WEIGHTS = {
   toolRatio: 0.3,
@@ -281,7 +283,8 @@ export function scoreAllSessions(sessions) {
   const scored = sessions.map((session) => {
     const { score, dimensions } = scoreSession(session);
     const tips = generateTips(session);
-    return { ...session, score, dimensions, tips };
+    const summary = generateSessionSummary({ ...session, score, dimensions, tips });
+    return { ...session, score, dimensions, tips, summary };
   });
 
   const recentSessions = scored.filter((s) => {
@@ -326,11 +329,14 @@ export function scoreAllSessions(sessions) {
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
+  const overallSummary = generateOverallSummary({ sessions: scored, overallScore, badges, tips: allTips });
+
   return {
     sessions: scored,
     overallScore,
     badges,
     tips: allTips,
     dailyScores,
+    overallSummary,
   };
 }

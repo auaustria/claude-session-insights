@@ -1,17 +1,17 @@
 # cc-usage-insights
 
-A lightweight CLI tool that analyzes your Claude Code sessions locally, computes an efficiency score, and surfaces actionable tips to help you use Claude more effectively.
+A lightweight CLI tool that analyzes your Claude Code sessions locally, computes an efficiency score, and surfaces actionable insights to help you use Claude more effectively.
 
-Think "Spotify Wrapped" for your Claude Code usage — scores, badges, cost breakdowns, and a local dashboard. All data stays on your machine.
+Think "Spotify Wrapped" for your Claude Code usage — scores, summaries, badges, cost breakdowns, and a local dashboard. All data stays on your machine.
 
 ## Features
 
 - **Efficiency Score (0-100)** — weighted composite across 5 dimensions: tool call ratio, cache hit rate, context management, model fit, and prompt specificity
-- **Actionable Tips** — specific to your actual sessions, not generic advice ("Session X: cost per turn doubled after turn 14. Consider /clear around that point.")
+- **Overall Summary** — natural-language assessment of your prompting habits with specific recommendations ("31% of sessions have high tool-call ratios — include file paths and function names to reduce searching")
+- **Per-Session Summary** — each session gets a plain-English breakdown of what happened, what went well, and what could improve
 - **Session Drill-down** — click any session to see the full conversation timeline with per-turn token counts, costs, tool calls, and prompt previews
 - **Subscription Savings** — compare your API-equivalent usage cost against your Claude plan to see how much you're saving
 - **Badges** — behavioral achievements like Surgical Prompter, Cache Whisperer, and Efficiency Diamond
-- **Team Export** — generate a privacy-safe JSON snapshot (no prompt text) for team leads to aggregate
 
 ## Quick Start
 
@@ -57,6 +57,14 @@ Each session is scored 0-100 across five dimensions:
 
 Your overall score is the weighted average across sessions from the last 7 days.
 
+## Summaries
+
+The dashboard generates rule-based summaries at two levels:
+
+**Overall** — analyzes patterns across all your sessions: session length habits, prompt specificity, cache efficiency, model selection, and cost distribution. Surfaces 2-3 key findings and concrete recommendations.
+
+**Per-session** — classifies each session (quick fix, focused task, long refactor), identifies the main cost driver, and highlights strengths. Displayed at the top of the session detail view.
+
 ## Badges
 
 | Badge | Criteria |
@@ -75,11 +83,11 @@ Generate a privacy-safe snapshot to share with your team lead:
 npx cc-usage-insights export
 ```
 
-The export contains scores, token counts, cost breakdowns, badge status, and tip categories — **never prompt text**. Team leads can aggregate these to identify coaching opportunities across the team.
+The export contains scores, token counts, cost breakdowns, badge status, and summary categories — **never prompt text**. Team leads can aggregate these to identify coaching opportunities across the team.
 
 ## Dependencies
 
-**Zero runtime dependencies.** Uses only Node.js built-in modules (`http`, `fs`, `readline`, `crypto`, `os`, `path`). The `open` package is dynamically imported to auto-launch the browser but is not required.
+**Zero runtime dependencies.** Uses only Node.js built-in modules (`http`, `fs`, `readline`, `crypto`, `os`, `path`).
 
 ## Privacy
 

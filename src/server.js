@@ -80,6 +80,7 @@ export function startServer(port = 3456) {
           badges: data.badges,
           tips: data.tips.slice(0, 20),
           dailyScores: data.dailyScores,
+          overallSummary: data.overallSummary,
           account: {
             subscriptionType: account.subscriptionType || null,
             orgName: account.orgName || null,
@@ -95,6 +96,7 @@ export function startServer(port = 3456) {
             dimensions: s.dimensions,
             tips: s.tips,
             totals: s.totals,
+            summary: s.summary,
           })),
         };
         return json(res, light);
@@ -120,6 +122,7 @@ export function startServer(port = 3456) {
           dimensions: session.dimensions,
           totals: session.totals,
           clearPoints: session.clearPoints,
+          summary: session.summary,
           turns: session.turns.map((t) => ({
             role: t.role,
             timestamp: t.timestamp,
