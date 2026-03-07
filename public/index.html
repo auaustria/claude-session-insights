@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cc-usage-insights</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.5; padding: 24px; max-width: 1200px; margin: 0 auto;
+  }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+  header h1 { font-size: 20px; font-weight: 600; }
+  header h1 span { color: var(--text2); font-weight: 400; }
+  .refresh-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .hero { display: flex; gap: 24px; margin-bottom: 32px; flex-wrap: wrap; }
+  .score-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px; text-align: center; min-width: 200px;
+  }
+  .score-card .score {
+    font-size: 64px; font-weight: 700; line-height: 1;
+    background: linear-gradient(135deg, var(--green), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .score-card .label { color: var(--text2); font-size: 13px; margin-top: 4px; }
+  .badges-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; flex: 1; min-width: 280px;
+  }
+  .badges-card h3 { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
+  .badge { display: inline-block; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 14px; margin: 4px; font-size: 13px; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px; margin-bottom: 32px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px;
+  }
+  .stat .value { font-size: 24px; font-weight: 600; }
+  .stat .label { font-size: 12px; color: var(--text2); }
+
+  section { margin-bottom: 32px; }
+  section h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+
+  .chart-container { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; overflow-x: auto; }
+  canvas { width: 100%; height: 200px; }
+
+  .tip {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 8px; font-size: 14px;
+  }
+  .tip .tip-type {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--yellow); margin-bottom: 4px;
+  }
+  .tip .tip-project { color: var(--text2); font-size: 12px; margin-top: 4px; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 12px; color: var(--text2); font-weight: 500;
+    border-bottom: 1px solid var(--border); cursor: pointer; white-space: nowrap;
+    user-select: none; }
+  th:hover { color: var(--text); }
+  th .sort-arrow { font-size: 10px; margin-left: 4px; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: var(--surface2); }
+  .session-title { color: var(--text2); font-size: 12px; max-width: 300px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .model-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 500; white-space: nowrap;
+  }
+  .model-opus { background: #3d1f5c; color: var(--purple); }
+  .model-sonnet { background: #1a3a2a; color: var(--green); }
+  .model-haiku { background: #2a2a1a; color: var(--yellow); }
+  .score-pill {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 12px; font-weight: 600;
+  }
+  .score-high { background: #1a3a2a; color: var(--green); }
+  .score-mid { background: #2a2a1a; color: var(--yellow); }
+  .score-low { background: #3a1a1a; color: var(--red); }
+
+  .loading { text-align: center; padding: 60px; color: var(--text2); }
+
+  /* Plan savings */
+  .savings-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin-bottom: 32px;
+  }
+  .savings-card h3 { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
+  .plan-select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px;
+    cursor: pointer;
+  }
+  .plan-select:focus { border-color: var(--accent); outline: none; }
+  .savings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .savings-item { padding: 12px; background: var(--surface2); border-radius: 8px; }
+  .savings-item .s-label { font-size: 12px; color: var(--text2); }
+  .savings-item .s-value { font-size: 22px; font-weight: 600; }
+  .savings-item .s-value.positive { color: var(--green); }
+  .savings-item .s-value.negative { color: var(--red); }
+  .savings-note { font-size: 11px; color: var(--text2); margin-top: 12px; }
+
+  /* Session detail view */
+  .back-btn {
+    background: none; border: none; color: var(--accent); cursor: pointer;
+    font-size: 14px; padding: 0; margin-bottom: 20px; display: inline-block;
+  }
+  .back-btn:hover { text-decoration: underline; }
+  .session-header {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin-bottom: 24px;
+  }
+  .session-header h2 { margin-bottom: 8px; font-size: 18px; }
+  .session-meta { display: flex; gap: 20px; flex-wrap: wrap; color: var(--text2); font-size: 13px; }
+  .session-meta span { display: flex; align-items: center; gap: 4px; }
+
+  .dim-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px; margin-bottom: 24px;
+  }
+  .dim-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+  }
+  .dim-item .dim-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .dim-item .dim-score { font-size: 20px; font-weight: 600; }
+  .dim-bar { height: 4px; border-radius: 2px; background: var(--surface2); margin-top: 6px; }
+  .dim-bar-fill { height: 100%; border-radius: 2px; }
+
+  .turn-list { display: flex; flex-direction: column; gap: 8px; }
+  .turn {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .turn-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px; font-size: 12px;
+  }
+  .turn-role {
+    font-weight: 600; text-transform: uppercase; font-size: 11px;
+    letter-spacing: 0.5px; padding: 2px 8px; border-radius: 4px;
+  }
+  .role-user { background: #1a2a3a; color: var(--accent); }
+  .role-assistant { background: #1a3a2a; color: var(--green); }
+  .turn-meta { color: var(--text2); display: flex; gap: 12px; align-items: center; }
+  .turn-text {
+    font-size: 13px; color: var(--text); line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .turn-tools {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;
+  }
+  .tool-tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 4px;
+    background: var(--surface2); color: var(--text2); border: 1px solid var(--border);
+  }
+  .turn-tokens {
+    display: flex; gap: 12px; margin-top: 8px; font-size: 11px; color: var(--text2);
+  }
+  .cost-chart-container {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+<div id="app" class="loading">Loading sessions...</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+
+async function fetchData(refresh = false) {
+  if (refresh) await fetch('/api/refresh');
+  const res = await fetch('/api/data');
+  return res.json();
+}
+
+async function fetchSession(id) {
+  const res = await fetch(`/api/session/${id}`);
+  return res.json();
+}
+
+function formatModel(model) {
+  if (!model) return '<span class="model-tag">unknown</span>';
+  const family = model.includes('opus') ? 'opus' : model.includes('haiku') ? 'haiku' : 'sonnet';
+  const label = model.replace('claude-', '').replace(/-/g, ' ').replace(/(\d+) (\d+)/, '$1.$2');
+  return `<span class="model-tag model-${family}">${label}</span>`;
+}
+
+function formatTokens(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + 'k';
+  return n.toString();
+}
+
+function formatCost(n) { return '$' + n.toFixed(2); }
+
+function formatDate(ts) {
+  if (!ts) return '-';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function scorePill(score) {
+  const cls = score >= 80 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';
+  return `<span class="score-pill ${cls}">${score}</span>`;
+}
+
+function dimColor(score) {
+  if (score >= 80) return 'var(--green)';
+  if (score >= 50) return 'var(--yellow)';
+  return 'var(--red)';
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Subscription plans — monthly cost per seat
+const PLANS = {
+  'pro': { name: 'Pro', cost: 20 },
+  'max-5x': { name: 'Max (5x)', cost: 100 },
+  'max-20x': { name: 'Max (20x)', cost: 200 },
+  'team': { name: 'Team', cost: 25 },
+  'team-max-5x': { name: 'Team Max (5x)', cost: 100 },
+  'team-max-20x': { name: 'Team Max (20x)', cost: 200 },
+  'enterprise': { name: 'Enterprise', cost: 25 },
+  'enterprise-max-5x': { name: 'Enterprise Max (5x)', cost: 100 },
+  'enterprise-max-20x': { name: 'Enterprise Max (20x)', cost: 200 },
+};
+
+let selectedPlan = localStorage.getItem('cc-plan') || null;
+
+function calcSavings(apiCost, periodDays, planKey) {
+  const plan = PLANS[planKey];
+  const months = periodDays / 30;
+  const planCost = plan.cost * months;
+  const saved = apiCost - planCost;
+  const pct = apiCost > 0 ? (saved / apiCost) * 100 : 0;
+  return { planCost, saved, pct, planName: plan.name, months };
+}
+
+function drawChart(canvas, dailyScores) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = rect.height;
+  const pad = { top: 20, right: 20, bottom: 40, left: 50 };
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
+
+  if (dailyScores.length === 0) {
+    ctx.fillStyle = '#8b949e'; ctx.font = '14px -apple-system, sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText('No daily data yet', w / 2, h / 2);
+    return;
+  }
+
+  const maxCost = Math.max(...dailyScores.map(d => d.cost), 1);
+  const barWidth = Math.min(40, (plotW / dailyScores.length) * 0.7);
+  const gap = plotW / dailyScores.length;
+
+  ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (plotH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#8b949e'; ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'right';
+    const val = maxCost - (maxCost / 4) * i;
+    ctx.fillText('$' + val.toFixed(val >= 10 ? 0 : 1), pad.left - 8, y + 4);
+  }
+
+  dailyScores.forEach((d, i) => {
+    const x = pad.left + gap * i + (gap - barWidth) / 2;
+    const barH = (d.cost / maxCost) * plotH;
+    const y = pad.top + plotH - barH;
+    ctx.fillStyle = d.score >= 80 ? '#3fb950' : d.score >= 50 ? '#d29922' : '#f85149';
+    ctx.beginPath(); ctx.roundRect(x, y, barWidth, barH, [3, 3, 0, 0]); ctx.fill();
+    if (barH > 20) {
+      ctx.fillStyle = '#0d1117'; ctx.font = 'bold 11px -apple-system, sans-serif';
+      ctx.textAlign = 'center'; ctx.fillText(d.score, x + barWidth / 2, y + 14);
+    }
+    ctx.fillStyle = '#8b949e'; ctx.font = '11px -apple-system, sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText(d.date.slice(5), x + barWidth / 2, pad.top + plotH + 20);
+  });
+}
+
+function drawCostPerTurn(canvas, turns) {
+  const assistantTurns = turns.filter(t => t.role === 'assistant' && t.cost > 0);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = rect.height;
+  const pad = { top: 20, right: 20, bottom: 30, left: 50 };
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
+
+  if (assistantTurns.length < 2) return;
+
+  const costs = assistantTurns.map(t => t.cost);
+  const maxCost = Math.max(...costs);
+  const step = plotW / (costs.length - 1);
+
+  // Grid
+  ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) {
+    const y = pad.top + (plotH / 3) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#8b949e'; ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'right';
+    const val = maxCost - (maxCost / 3) * i;
+    ctx.fillText('$' + val.toFixed(3), pad.left - 8, y + 4);
+  }
+
+  // Line
+  ctx.beginPath(); ctx.strokeStyle = 'var(--accent)'; ctx.lineWidth = 2;
+  costs.forEach((c, i) => {
+    const x = pad.left + step * i;
+    const y = pad.top + plotH - (c / maxCost) * plotH;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#58a6ff'; ctx.stroke();
+
+  // Dots
+  costs.forEach((c, i) => {
+    const x = pad.left + step * i;
+    const y = pad.top + plotH - (c / maxCost) * plotH;
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#58a6ff'; ctx.fill();
+  });
+
+  // X-axis label
+  ctx.fillStyle = '#8b949e'; ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Turn', pad.left + plotW / 2, h - 4);
+}
+
+// --- Views ---
+
+let sortCol = 'startTime';
+let sortDir = -1;
+let currentView = 'dashboard';
+
+function renderDashboard(data) {
+  currentView = 'dashboard';
+  const totalTokens = data.sessions.reduce((s, x) => s + x.totals.totalTokens, 0);
+  const totalCost = data.sessions.reduce((s, x) => s + x.totals.estimatedCost, 0);
+  const avgCacheHit = data.sessions.length > 0
+    ? data.sessions.reduce((s, x) => s + x.totals.cacheHitRate, 0) / data.sessions.length : 0;
+
+  const sorted = [...data.sessions].sort((a, b) => {
+    let av, bv;
+    if (sortCol === 'startTime') { av = a.startTime || ''; bv = b.startTime || ''; }
+    else if (sortCol === 'score') { av = a.score; bv = b.score; }
+    else if (sortCol === 'cost') { av = a.totals.estimatedCost; bv = b.totals.estimatedCost; }
+    else if (sortCol === 'tokens') { av = a.totals.totalTokens; bv = b.totals.totalTokens; }
+    else if (sortCol === 'project') { av = a.project; bv = b.project; }
+    if (av < bv) return -1 * sortDir;
+    if (av > bv) return 1 * sortDir;
+    return 0;
+  });
+
+  const arrow = (col) => sortCol === col ? `<span class="sort-arrow">${sortDir === 1 ? '▲' : '▼'}</span>` : '';
+
+  $('#app').innerHTML = `
+    <header>
+      <h1>cc-usage-insights <span>v0.1</span></h1>
+      <button class="refresh-btn" onclick="doRefresh()">Refresh</button>
+    </header>
+    <div class="hero">
+      <div class="score-card">
+        <div class="score">${data.overallScore}</div>
+        <div class="label">Efficiency Score (7-day)</div>
+      </div>
+      <div class="badges-card">
+        <h3>Badges Earned</h3>
+        ${data.badges.length > 0
+          ? data.badges.map(b => `<span class="badge">${b.name}</span>`).join('')
+          : '<span style="color: var(--text2)">Keep going -- badges unlock after 5+ sessions</span>'}
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="value">${data.sessions.length}</div><div class="label">Sessions</div></div>
+      <div class="stat"><div class="value">${formatTokens(totalTokens)}</div><div class="label">Total Tokens</div></div>
+      <div class="stat"><div class="value">${formatCost(totalCost)}</div><div class="label">Est. API Cost</div></div>
+      <div class="stat"><div class="value">${(avgCacheHit * 100).toFixed(0)}%</div><div class="label">Avg Cache Hit Rate</div></div>
+    </div>
+    <div class="savings-card" id="savings-section"></div>
+    <section>
+      <h2>Daily Usage & Score</h2>
+      <div class="chart-container"><canvas id="chart" style="height:200px"></canvas></div>
+    </section>
+    ${data.tips.length > 0 ? `
+    <section>
+      <h2>Tips</h2>
+      ${data.tips.slice(0, 8).map(t => `
+        <div class="tip">
+          <div class="tip-type">${t.type.replace(/-/g, ' ')}</div>
+          <div>${t.message}</div>
+          <div class="tip-project">${t.project}</div>
+        </div>
+      `).join('')}
+    </section>` : ''}
+    <section>
+      <h2>Sessions</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-col="startTime">Date ${arrow('startTime')}</th>
+            <th data-col="project">Project ${arrow('project')}</th>
+            <th>Session</th>
+            <th>Model</th>
+            <th data-col="score">Score ${arrow('score')}</th>
+            <th>Msgs</th>
+            <th data-col="tokens">Tokens ${arrow('tokens')}</th>
+            <th>Tools</th>
+            <th>Cache</th>
+            <th data-col="cost">Cost ${arrow('cost')}</th>
+          </tr></thead>
+          <tbody>
+            ${sorted.map(s => `<tr class="clickable" data-id="${s.id}">
+              <td style="white-space:nowrap">${formatDate(s.startTime)}</td>
+              <td>${s.project}</td>
+              <td><div class="session-title">${escHtml(s.title)}</div></td>
+              <td>${formatModel(s.model)}</td>
+              <td>${scorePill(s.score)}</td>
+              <td>${s.totals.userMessages}</td>
+              <td>${formatTokens(s.totals.totalTokens)}</td>
+              <td>${s.totals.toolCalls}</td>
+              <td>${(s.totals.cacheHitRate * 100).toFixed(0)}%</td>
+              <td>${formatCost(s.totals.estimatedCost)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+
+  renderSavings(data, totalCost);
+
+  const canvas = document.getElementById('chart');
+  if (canvas) drawChart(canvas, data.dailyScores);
+
+  // Sort handlers
+  document.querySelectorAll('th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) sortDir *= -1;
+      else { sortCol = col; sortDir = -1; }
+      renderDashboard(data);
+    });
+  });
+
+  // Row click -> session detail
+  document.querySelectorAll('tr.clickable').forEach(tr => {
+    tr.addEventListener('click', () => openSession(tr.dataset.id));
+  });
+}
+
+async function openSession(id) {
+  currentView = 'session';
+  $('#app').innerHTML = '<div class="loading">Loading session...</div>';
+  const s = await fetchSession(id);
+  renderSession(s);
+}
+
+function renderSession(s) {
+  const dimLabels = {
+    toolRatio: 'Tool Call Ratio',
+    cacheHitRate: 'Cache Hit Rate',
+    contextManagement: 'Context Mgmt',
+    modelFit: 'Model Fit',
+    promptSpecificity: 'Prompt Specificity',
+  };
+
+  // Cumulative cost for the turns
+  let cumCost = 0;
+
+  $('#app').innerHTML = `
+    <button class="back-btn" onclick="goBack()">&larr; Back to dashboard</button>
+
+    <div class="session-header">
+      <h2>${escHtml(s.title)}</h2>
+      <div class="session-meta">
+        <span>${s.project}</span>
+        <span>${formatModel(s.model)}</span>
+        <span>${scorePill(s.score)}</span>
+        <span>${formatDate(s.startTime)} - ${formatTime(s.endTime)}</span>
+        <span>${s.totals.userMessages} messages</span>
+        <span>${formatTokens(s.totals.totalTokens)} tokens</span>
+        <span>${formatCost(s.totals.estimatedCost)}</span>
+        <span>Cache: ${(s.totals.cacheHitRate * 100).toFixed(0)}%</span>
+      </div>
+    </div>
+
+    <div class="dim-grid">
+      ${Object.entries(s.dimensions).map(([key, val]) => `
+        <div class="dim-item">
+          <div class="dim-label">${dimLabels[key] || key}</div>
+          <div class="dim-score" style="color: ${dimColor(val)}">${val}</div>
+          <div class="dim-bar"><div class="dim-bar-fill" style="width:${val}%; background:${dimColor(val)}"></div></div>
+        </div>
+      `).join('')}
+    </div>
+
+    <section>
+      <h2>Cost per Turn</h2>
+      <div class="cost-chart-container"><canvas id="cost-chart" style="height:160px"></canvas></div>
+    </section>
+
+    <section>
+      <h2>Conversation</h2>
+      <div class="turn-list">
+        ${s.turns.map((t, i) => {
+          if (t.role === 'assistant') cumCost += t.cost || 0;
+          const totalTok = t.tokens.input + t.tokens.output + t.tokens.cacheCreation + t.tokens.cacheRead;
+          return `
+          <div class="turn">
+            <div class="turn-header">
+              <div>
+                <span class="turn-role ${t.role === 'user' ? 'role-user' : 'role-assistant'}">${t.role}</span>
+                <span style="color:var(--text2); font-size:12px; margin-left:8px">#${i + 1}</span>
+              </div>
+              <div class="turn-meta">
+                ${t.role === 'assistant' ? `<span>${formatCost(t.cost || 0)} (cum: ${formatCost(cumCost)})</span>` : ''}
+                ${totalTok > 0 ? `<span>${formatTokens(totalTok)} tok</span>` : ''}
+                <span>${formatTime(t.timestamp)}</span>
+              </div>
+            </div>
+            ${t.role === 'user' && t.promptPreview ? `<div class="turn-text">${escHtml(t.promptPreview)}</div>` : ''}
+            ${t.role === 'assistant' && t.textPreview ? `<div class="turn-text">${escHtml(t.textPreview)}</div>` : ''}
+            ${t.toolCalls && t.toolCalls.length > 0 ? `
+              <div class="turn-tools">${t.toolCalls.map(tc => `<span class="tool-tag">${tc}</span>`).join('')}</div>
+            ` : ''}
+            ${t.role === 'assistant' && totalTok > 0 ? `
+              <div class="turn-tokens">
+                <span>in: ${formatTokens(t.tokens.input)}</span>
+                <span>out: ${formatTokens(t.tokens.output)}</span>
+                ${t.tokens.cacheCreation > 0 ? `<span>cache-write: ${formatTokens(t.tokens.cacheCreation)}</span>` : ''}
+                ${t.tokens.cacheRead > 0 ? `<span>cache-read: ${formatTokens(t.tokens.cacheRead)}</span>` : ''}
+              </div>
+            ` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </section>
+  `;
+
+  const costCanvas = document.getElementById('cost-chart');
+  if (costCanvas) drawCostPerTurn(costCanvas, s.turns);
+}
+
+function renderSavings(data, totalCost) {
+  const el = document.getElementById('savings-section');
+  if (!el) return;
+
+  const planOptions = Object.entries(PLANS).map(([k, v]) =>
+    `<option value="${k}" ${k === selectedPlan ? 'selected' : ''}>${v.name} ($${v.cost}/mo)</option>`
+  ).join('');
+
+  if (!selectedPlan) {
+    el.innerHTML = `
+      <h3>Subscription Savings</h3>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span style="color:var(--text2); font-size:14px;">Select your Claude plan to see how much you're saving vs API pricing</span>
+        <select class="plan-select" id="plan-picker" style="margin-bottom:0">
+          <option value="" selected disabled>Choose your plan...</option>
+          ${planOptions}
+        </select>
+      </div>
+    `;
+  } else {
+    const dates = data.sessions.map(s => s.startTime).filter(Boolean).sort();
+    const periodDays = dates.length >= 2
+      ? Math.max(1, (new Date(dates[dates.length - 1]) - new Date(dates[0])) / 86400000)
+      : 30;
+    const { planCost, saved, pct, planName, months } = calcSavings(totalCost, periodDays, selectedPlan);
+
+    el.innerHTML = `
+      <h3>Subscription Savings</h3>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+        <select class="plan-select" id="plan-picker" style="margin-bottom:0">
+          ${planOptions}
+        </select>
+      </div>
+      <div class="savings-grid">
+        <div class="savings-item">
+          <div class="s-label">API-Equivalent Cost</div>
+          <div class="s-value">${formatCost(totalCost)}</div>
+        </div>
+        <div class="savings-item">
+          <div class="s-label">${planName} Cost (${months.toFixed(1)} mo)</div>
+          <div class="s-value">${formatCost(planCost)}</div>
+        </div>
+        <div class="savings-item">
+          <div class="s-label">You Saved</div>
+          <div class="s-value ${saved >= 0 ? 'positive' : 'negative'}">${saved >= 0 ? '+' : ''}${formatCost(saved)}</div>
+        </div>
+        <div class="savings-item">
+          <div class="s-label">Savings Rate</div>
+          <div class="s-value ${saved >= 0 ? 'positive' : 'negative'}">${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%</div>
+        </div>
+      </div>
+      <div class="savings-note">Compares what your usage would cost at API rates vs your ${planName} subscription. Higher savings = more value from your plan.</div>
+    `;
+  }
+
+  document.getElementById('plan-picker').addEventListener('change', (e) => {
+    selectedPlan = e.target.value;
+    localStorage.setItem('cc-plan', selectedPlan);
+    renderSavings(data, totalCost);
+  });
+}
+
+function goBack() {
+  if (currentData) renderDashboard(currentData);
+}
+
+// --- Init ---
+
+let currentData;
+async function doRefresh() {
+  $('#app').innerHTML = '<div class="loading">Refreshing...</div>';
+  currentData = await fetchData(true);
+  renderDashboard(currentData);
+}
+
+fetchData().then(data => { currentData = data; renderDashboard(data); });
+
+// Live reload via SSE
+const sse = new EventSource('/api/reload');
+sse.onmessage = async (e) => {
+  console.log('[reload]', e.data);
+  if (e.data.startsWith('public/')) {
+    location.reload();
+  } else {
+    currentData = await fetchData();
+    if (currentView === 'dashboard') renderDashboard(currentData);
+  }
+};
+</script>
+</body>
+</html>

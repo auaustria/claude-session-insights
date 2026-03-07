@@ -1,0 +1,336 @@
+// Efficiency scoring engine
+// Computes per-session score (0-100), overall score, tips, and badges.
+
+const WEIGHTS = {
+  toolRatio: 0.3,
+  cacheHitRate: 0.25,
+  contextManagement: 0.2,
+  modelFit: 0.15,
+  promptSpecificity: 0.1,
+};
+
+// Score a single dimension 0-100
+function scoreToolRatio(session) {
+  const { toolCalls, userMessages } = session.totals;
+  if (userMessages === 0) return 50;
+  const ratio = toolCalls / userMessages;
+  // < 2 is great (100), 2-5 is ok (50-100), > 5 is poor (0-50)
+  if (ratio <= 2) return 100;
+  if (ratio <= 5) return 100 - ((ratio - 2) / 3) * 50;
+  if (ratio <= 10) return 50 - ((ratio - 5) / 5) * 50;
+  return 0;
+}
+
+function scoreCacheHitRate(session) {
+  const rate = session.totals.cacheHitRate;
+  // > 60% is great, < 20% is poor
+  if (rate >= 0.75) return 100;
+  if (rate >= 0.6) return 80 + ((rate - 0.6) / 0.15) * 20;
+  if (rate >= 0.2) return 20 + ((rate - 0.2) / 0.4) * 60;
+  return rate / 0.2 * 20;
+}
+
+function scoreContextManagement(session) {
+  const assistantTurns = session.turns.filter((t) => t.role === "assistant" && t.cost);
+  if (assistantTurns.length < 5) return 70; // too short to judge
+
+  // Find cost inflection: where rolling avg of cost-per-turn doubles
+  const costs = assistantTurns.map((t) => t.cost);
+  const windowSize = 3;
+  let baselineCost = 0;
+  for (let i = 0; i < Math.min(windowSize, costs.length); i++) {
+    baselineCost += costs[i];
+  }
+  baselineCost /= Math.min(windowSize, costs.length);
+
+  if (baselineCost === 0) return 70;
+
+  let inflectionTurn = null;
+  for (let i = windowSize; i <= costs.length - windowSize; i++) {
+    let windowAvg = 0;
+    for (let j = i; j < i + windowSize; j++) {
+      windowAvg += costs[j];
+    }
+    windowAvg /= windowSize;
+    if (windowAvg > baselineCost * 2) {
+      inflectionTurn = i;
+      break;
+    }
+  }
+
+  if (!inflectionTurn) return 90; // no runaway cost, good
+
+  // Did they clear near the inflection?
+  const clearedNearInflection = session.clearPoints.some(
+    (cp) => Math.abs(cp - inflectionTurn) <= 5
+  );
+  if (clearedNearInflection) return 85;
+
+  // How much of the session ran past inflection?
+  const fractionPastInflection = (assistantTurns.length - inflectionTurn) / assistantTurns.length;
+  return Math.max(0, 70 - fractionPastInflection * 70);
+}
+
+function scoreModelFit(session) {
+  const model = session.model || "";
+  const { userMessages, totalTokens } = session.totals;
+  const isOpus = model.includes("opus");
+
+  if (!isOpus) return 80; // non-opus is generally fine
+
+  // Opus on a simple task?
+  if (userMessages <= 10 && totalTokens < 200_000) return 30;
+  if (userMessages <= 5) return 40;
+  return 80; // opus on a complex task is appropriate
+}
+
+function scorePromptSpecificity(session) {
+  const userTurns = session.turns.filter((t) => t.role === "user");
+  if (userTurns.length === 0) return 50;
+
+  let vagueCount = 0;
+  for (let i = 0; i < userTurns.length; i++) {
+    const turn = userTurns[i];
+    if (turn.promptLength < 30) {
+      // Check if the next assistant response was expensive
+      const turnIdx = session.turns.indexOf(turn);
+      const nextAssistant = session.turns
+        .slice(turnIdx + 1)
+        .find((t) => t.role === "assistant");
+      if (nextAssistant && nextAssistant.tokens.input + nextAssistant.tokens.output > 50_000) {
+        vagueCount++;
+      }
+    }
+  }
+
+  const vagueRate = vagueCount / userTurns.length;
+  if (vagueRate === 0) return 100;
+  if (vagueRate < 0.1) return 80;
+  if (vagueRate < 0.3) return 50;
+  return 20;
+}
+
+export function scoreSession(session) {
+  const dimensions = {
+    toolRatio: scoreToolRatio(session),
+    cacheHitRate: scoreCacheHitRate(session),
+    contextManagement: scoreContextManagement(session),
+    modelFit: scoreModelFit(session),
+    promptSpecificity: scorePromptSpecificity(session),
+  };
+
+  const score = Math.round(
+    Object.entries(WEIGHTS).reduce(
+      (sum, [key, weight]) => sum + dimensions[key] * weight,
+      0
+    )
+  );
+
+  return { score, dimensions };
+}
+
+// --- Tips ---
+
+function findCostInflection(session) {
+  const assistantTurns = session.turns.filter((t) => t.role === "assistant" && t.cost);
+  if (assistantTurns.length < 6) return null;
+
+  const costs = assistantTurns.map((t) => t.cost);
+  const windowSize = 3;
+  let baseline = 0;
+  for (let i = 0; i < windowSize; i++) baseline += costs[i];
+  baseline /= windowSize;
+
+  if (baseline === 0) return null;
+
+  for (let i = windowSize; i <= costs.length - windowSize; i++) {
+    let avg = 0;
+    for (let j = i; j < i + windowSize; j++) avg += costs[j];
+    avg /= windowSize;
+    if (avg > baseline * 2) return i;
+  }
+  return null;
+}
+
+export function generateTips(session) {
+  const tips = [];
+  const { toolCalls, userMessages, cacheHitRate } = session.totals;
+  const model = session.model || "";
+
+  // High tool ratio
+  if (userMessages > 0 && toolCalls / userMessages > 5) {
+    tips.push({
+      type: "high-tool-ratio",
+      severity: "warning",
+      message: `${toolCalls} tool calls across ${userMessages} messages (${(toolCalls / userMessages).toFixed(1)}x ratio). Try specifying file paths and line numbers to reduce searching.`,
+    });
+  }
+
+  // Low cache hit rate
+  if (cacheHitRate < 0.2 && session.totals.totalTokens > 50_000) {
+    tips.push({
+      type: "low-cache-hits",
+      severity: "warning",
+      message: `Only ${(cacheHitRate * 100).toFixed(0)}% cache hit rate. Group related tasks in one session to warm the cache.`,
+    });
+  }
+
+  // Cost inflection
+  const inflection = findCostInflection(session);
+  if (inflection !== null) {
+    const clearedNear = session.clearPoints.some((cp) => Math.abs(cp - inflection) <= 5);
+    if (!clearedNear) {
+      tips.push({
+        type: "cost-inflection",
+        severity: "info",
+        message: `Cost per turn doubled around turn ${inflection}. Consider using /clear around that point.`,
+      });
+    }
+  }
+
+  // Opus on simple task
+  if (model.includes("opus") && userMessages <= 10 && session.totals.totalTokens < 200_000) {
+    tips.push({
+      type: "model-mismatch",
+      severity: "info",
+      message: `Opus used for a ${userMessages}-message session. Sonnet handles quick tasks at 5x lower cost.`,
+    });
+  }
+
+  return tips;
+}
+
+// --- Badges ---
+
+const BADGE_DEFINITIONS = [
+  {
+    id: "surgical-prompter",
+    name: "Surgical Prompter",
+    description: "Tool call ratio < 2x across 5+ sessions",
+    test: (sessions) => {
+      const qualifying = sessions.filter(
+        (s) => s.totals.userMessages > 0 && s.totals.toolCalls / s.totals.userMessages < 2
+      );
+      return qualifying.length >= 5;
+    },
+  },
+  {
+    id: "cache-whisperer",
+    name: "Cache Whisperer",
+    description: "Cache hit rate > 75% across 5+ sessions",
+    test: (sessions) => {
+      const qualifying = sessions.filter(
+        (s) => s.totals.totalTokens > 10_000 && s.totals.cacheHitRate > 0.75
+      );
+      return qualifying.length >= 5;
+    },
+  },
+  {
+    id: "clean-slate",
+    name: "Clean Slate",
+    description: "Uses /clear near cost inflection in 3+ sessions",
+    test: (sessions) => {
+      let count = 0;
+      for (const s of sessions) {
+        const inflection = findCostInflection(s);
+        if (inflection !== null && s.clearPoints.some((cp) => Math.abs(cp - inflection) <= 5)) {
+          count++;
+        }
+      }
+      return count >= 3;
+    },
+  },
+  {
+    id: "model-sniper",
+    name: "Model Sniper",
+    description: "Appropriate model selection > 90% of sessions",
+    test: (sessions) => {
+      if (sessions.length < 5) return false;
+      const appropriate = sessions.filter((s) => {
+        const model = s.model || "";
+        if (!model.includes("opus")) return true;
+        return s.totals.userMessages > 10 || s.totals.totalTokens > 200_000;
+      });
+      return appropriate.length / sessions.length > 0.9;
+    },
+  },
+  {
+    id: "efficiency-diamond",
+    name: "Efficiency Diamond",
+    description: "Overall score > 85 sustained over 7 days",
+    test: (sessions, scoredSessions) => {
+      if (!scoredSessions || scoredSessions.length < 5) return false;
+      const avg =
+        scoredSessions.reduce((sum, s) => sum + s.score, 0) / scoredSessions.length;
+      return avg > 85;
+    },
+  },
+];
+
+export function evaluateBadges(sessions, scoredSessions) {
+  return BADGE_DEFINITIONS.filter((b) => b.test(sessions, scoredSessions)).map((b) => ({
+    id: b.id,
+    name: b.name,
+    description: b.description,
+  }));
+}
+
+// --- Aggregate scoring ---
+
+export function scoreAllSessions(sessions) {
+  const scored = sessions.map((session) => {
+    const { score, dimensions } = scoreSession(session);
+    const tips = generateTips(session);
+    return { ...session, score, dimensions, tips };
+  });
+
+  const recentSessions = scored.filter((s) => {
+    if (!s.startTime) return false;
+    const age = Date.now() - new Date(s.startTime).getTime();
+    return age < 7 * 24 * 60 * 60 * 1000; // 7 days
+  });
+
+  const sessionsForOverall = recentSessions.length > 0 ? recentSessions : scored;
+  const overallScore =
+    sessionsForOverall.length > 0
+      ? Math.round(
+          sessionsForOverall.reduce((sum, s) => sum + s.score, 0) / sessionsForOverall.length
+        )
+      : 0;
+
+  const badges = evaluateBadges(sessions, scored);
+
+  // Collect all tips, deduplicate by type, keep top ones
+  const allTips = scored.flatMap((s) =>
+    s.tips.map((t) => ({ ...t, sessionId: s.id, project: s.project }))
+  );
+
+  // Daily scores
+  const dailyMap = {};
+  for (const s of scored) {
+    if (!s.startTime) continue;
+    const date = s.startTime.slice(0, 10);
+    if (!dailyMap[date]) dailyMap[date] = { date, scores: [], sessions: 0, tokens: 0, cost: 0 };
+    dailyMap[date].scores.push(s.score);
+    dailyMap[date].sessions++;
+    dailyMap[date].tokens += s.totals.totalTokens;
+    dailyMap[date].cost += s.totals.estimatedCost;
+  }
+  const dailyScores = Object.values(dailyMap)
+    .map((d) => ({
+      date: d.date,
+      score: Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length),
+      sessions: d.sessions,
+      tokens: d.tokens,
+      cost: d.cost,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return {
+    sessions: scored,
+    overallScore,
+    badges,
+    tips: allTips,
+    dailyScores,
+  };
+}

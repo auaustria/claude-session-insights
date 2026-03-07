@@ -1,0 +1,27 @@
+{
+  "name": "cc-usage-insights",
+  "version": "0.1.0",
+  "description": "Analyze Claude Code sessions for efficiency insights, scores, and team metrics",
+  "type": "module",
+  "bin": {
+    "cc-usage-insights": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "public/"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "efficiency",
+    "tokens",
+    "usage",
+    "insights"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/auaustria/cc-usage-insights"
+  }
+}
