@@ -1314,6 +1314,7 @@ function goBack() {
 let aiModels = [];
 let aiDefaultModel = null;
 let aiDefaultModelLabel = null;
+let cachedAIRender = null; // persists AI insights across renderDashboard calls
 
 function renderMarkdown(text) {
   return text
@@ -1374,7 +1375,16 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.ai-model-picker.open').forEach(p => p.classList.remove('open'));
 });
 
+function applyAIState() {
+  if (cachedAIRender) {
+    renderAIComplete(cachedAIRender.content, cachedAIRender.generatedAt, cachedAIRender.model);
+  } else {
+    renderModelPicker();
+  }
+}
+
 function renderAIComplete(content, generatedAt, model) {
+  cachedAIRender = { content, generatedAt, model };
   const body = document.getElementById('ai-insights-body');
   if (!body) return;
   body.innerHTML = `
@@ -1393,6 +1403,7 @@ function renderAIComplete(content, generatedAt, model) {
 }
 
 function clearAIInsights() {
+  cachedAIRender = null;
   fetch('/api/ai-analyze', { method: 'DELETE' }).catch(() => {});
   const body = document.getElementById('ai-insights-body');
   if (!body) return;
@@ -1871,6 +1882,7 @@ async function doRefresh() {
   btn.classList.add('spinning');
   currentData = await fetchData(true);
   renderDashboard(currentData);
+  applyAIState();
   btn.classList.remove('spinning');
 }
 
@@ -1897,6 +1909,7 @@ function startAutoRefresh() {
         if (btn) btn.classList.add('spinning');
         currentData = await fetchData(true);
         renderDashboard(currentData);
+        applyAIState();
         if (btn) btn.classList.remove('spinning');
         updateCountdownLabel();
       })();
@@ -1935,13 +1948,10 @@ function resumeAutoRefreshIfPaused() {
   }
 }
 
-// Clear AI insights on fresh page load (not on in-app refresh)
-fetch('/api/ai-analyze', { method: 'DELETE' }).catch(() => {});
-
 fetchData().then(data => {
   currentData = data;
   renderDashboard(data);
-  loadCachedAIInsights(); // loads model list (cache already cleared above)
+  loadCachedAIInsights();
   if (autoRefreshActive) startAutoRefresh();
 });
 
