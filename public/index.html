@@ -207,14 +207,14 @@
   .badge-icon {
     width: 24px; height: 24px; border-radius: 5px;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+    flex-shrink: 0; font-size: 14px; line-height: 1;
   }
-  .badge-icon.surgical-prompter { background: var(--accent-dim); color: var(--accent); }
-  .badge-icon.cache-whisperer { background: var(--green-dim); color: var(--green); }
-  .badge-icon.clean-slate { background: var(--yellow-dim); color: var(--yellow); }
-  .badge-icon.model-sniper { background: var(--purple-dim); color: var(--purple); }
-  .badge-icon.efficiency-diamond { background: var(--green-dim); color: var(--green); }
-  .badge.negative .badge-icon { background: var(--red-dim, rgba(239,68,68,0.15)); color: var(--red, #ef4444); }
+  .badge-icon.surgical-prompter { background: var(--accent-dim); }
+  .badge-icon.cache-whisperer { background: var(--green-dim); }
+  .badge-icon.clean-slate { background: var(--yellow-dim); }
+  .badge-icon.model-sniper { background: var(--purple-dim); }
+  .badge-icon.efficiency-diamond { background: var(--green-dim); }
+  .badge.negative .badge-icon { background: var(--red-dim, rgba(239,68,68,0.15)); }
   .badge.negative .badge-name { color: var(--red, #ef4444); }
   .badge-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; }
   .badge-tip {
@@ -644,6 +644,60 @@
     color: var(--text3); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px;
   }
   .ai-prompt-close:hover { color: var(--text); }
+
+  /* Share modal */
+  .share-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+    height: 34px; border-radius: 7px; cursor: pointer; padding: 0 12px;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s; font-size: 12px; font-weight: 500; white-space: nowrap;
+  }
+  .share-btn:hover { background: var(--surface3); color: var(--text); border-color: var(--border-hover); }
+  .share-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    z-index: 1000; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .share-overlay.open { display: flex; }
+  .share-modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 20px; max-width: 520px; width: 95%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18); position: relative;
+  }
+  .share-modal-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+  .share-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .share-tab {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 500;
+    color: var(--text2); cursor: pointer; transition: all 0.15s;
+  }
+  .share-tab:hover { border-color: var(--border-hover); color: var(--text); }
+  .share-tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .share-preview {
+    border-radius: 8px; overflow: hidden; border: 1px solid var(--border);
+    background: var(--surface2); margin-bottom: 14px; min-height: 60px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .share-preview img { width: 100%; display: block; border-radius: 7px; }
+  .share-preview-loading { font-size: 12px; color: var(--text3); padding: 20px; }
+  .share-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .share-cancel-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+    padding: 8px 18px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .share-cancel-btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .share-download-btn {
+    background: var(--accent); border: none; color: #fff;
+    padding: 8px 18px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 600;
+    transition: opacity 0.15s;
+  }
+  .share-download-btn:hover { opacity: 0.88; }
+  .share-close {
+    position: absolute; top: 12px; right: 14px; background: none; border: none;
+    color: var(--text3); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px;
+  }
+  .share-close:hover { color: var(--text); }
 </style>
 </head>
 <body>
@@ -697,15 +751,15 @@ async function fetchSession(id) {
 }
 
 const BADGE_ICONS = {
-  'surgical-prompter': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>`,
-  'cache-whisperer': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
-  'clean-slate': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`,
-  'model-sniper': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
-  'efficiency-diamond': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 12 12 22 2 12"/></svg>`,
-  'opus-addict': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/></svg>`,
-  'token-furnace': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c2-2.96 0-7-1-8 0 3.038-1.773 4.741-3 6-1.226 1.26-2 3.24-2 5a6 6 0 1 0 12 0c0-1.532-1.056-3.94-2-5-1.786 3-2.791 3-4 2z"/></svg>`,
-  'context-hoarder': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
-  'vague-commander': `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  'surgical-prompter': '🔬',
+  'cache-whisperer': '⚡',
+  'clean-slate': '🧹',
+  'model-sniper': '🎯',
+  'efficiency-diamond': '💎',
+  'opus-addict': '💸',
+  'token-furnace': '🔥',
+  'context-hoarder': '📚',
+  'vague-commander': '❓',
 };
 
 function renderBadge(b) {
@@ -938,6 +992,10 @@ function renderDashboard(data) {
         <button class="refresh-btn" onclick="doRefresh()" title="Refresh" id="refresh-btn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 13a10 10 0 1 1-2.84-8.84L21.5 8"/></svg>
         </button>
+        <button class="share-btn" onclick="openShareModal()" title="Share stats as PNG">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          Share
+        </button>
         <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" id="theme-toggle-btn"></button>
       </div>
     </header>
@@ -1027,6 +1085,23 @@ function renderDashboard(data) {
         <button class="ai-prompt-close" onclick="togglePromptView()">&times;</button>
         <h3>AI Insights Prompt</h3>
         <pre id="ai-prompt-content">Loading...</pre>
+      </div>
+    </div>
+    <div class="share-overlay" id="share-overlay" onclick="if(event.target===this)closeShareModal()">
+      <div class="share-modal">
+        <button class="share-close" onclick="closeShareModal()">&times;</button>
+        <div class="share-modal-title">Share your stats</div>
+        <div class="share-tabs">
+          <button class="share-tab active" data-type="score" onclick="switchShareType('score')">Score &amp; Badges</button>
+          <button class="share-tab" data-type="full" onclick="switchShareType('full')">Full Summary</button>
+        </div>
+        <div class="share-preview" id="share-preview">
+          <span class="share-preview-loading">Generating preview…</span>
+        </div>
+        <div class="share-actions">
+          <button class="share-cancel-btn" onclick="closeShareModal()">Cancel</button>
+          <button class="share-download-btn" onclick="downloadCurrentShare()">Download PNG</button>
+        </div>
       </div>
     </div>
     <div class="stats">
@@ -1454,6 +1529,332 @@ async function loadCachedAIInsights() {
       renderAIComplete(data.content, data.generatedAt, data.model);
     }
   } catch {}
+}
+
+// --- Share as PNG ---
+
+const BADGE_EMOJI = BADGE_ICONS;
+
+let currentShareType = 'score';
+
+function getShareColors() {
+  const isDark = (document.documentElement.getAttribute('data-theme') || getPreferredTheme()) === 'dark';
+  return {
+    bg: isDark ? '#0c0f14' : '#f5f6f8',
+    surface: isDark ? '#14181f' : '#ffffff',
+    text: isDark ? '#d8dce4' : '#1a1d23',
+    text2: isDark ? '#8b919a' : '#5c6370',
+    text3: isDark ? '#5c6370' : '#8b919a',
+    accent: isDark ? '#6ea4f7' : '#2563eb',
+    green: isDark ? '#56d364' : '#16a34a',
+    yellow: isDark ? '#e3b341' : '#ca8a04',
+    red: isDark ? '#f47067' : '#dc2626',
+    purple: isDark ? '#d2a8ff' : '#7c3aed',
+    border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    redDim: isDark ? 'rgba(244,112,103,0.14)' : 'rgba(220,38,38,0.10)',
+    redBorder: isDark ? 'rgba(244,112,103,0.35)' : 'rgba(220,38,38,0.25)',
+  };
+}
+
+function buildShareCanvas(type, dpr) {
+  if (!currentData) return null;
+  const colors = getShareColors();
+  const W = 600;
+
+  const measureCanvas = document.createElement('canvas');
+  measureCanvas.width = W * dpr;
+  measureCanvas.height = 3000 * dpr;
+  const measureCtx = measureCanvas.getContext('2d');
+  measureCtx.scale(dpr, dpr);
+  const H = drawShareContent(measureCtx, currentData, type, W, colors, false);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  drawShareContent(ctx, currentData, type, W, colors, true);
+  return canvas;
+}
+
+function openShareModal() {
+  document.getElementById('share-overlay').classList.add('open');
+  pauseAutoRefresh();
+  currentShareType = 'score';
+  renderSharePreview();
+}
+
+function closeShareModal() {
+  document.getElementById('share-overlay').classList.remove('open');
+  resumeAutoRefreshIfPaused();
+}
+
+function switchShareType(type) {
+  currentShareType = type;
+  document.querySelectorAll('.share-tab').forEach(t => t.classList.toggle('active', t.dataset.type === type));
+  renderSharePreview();
+}
+
+function renderSharePreview() {
+  const preview = document.getElementById('share-preview');
+  if (!preview) return;
+  preview.innerHTML = '<span class="share-preview-loading">Generating preview\u2026</span>';
+  // Yield to browser to show loading message before heavy canvas work
+  requestAnimationFrame(() => {
+    const canvas = buildShareCanvas(currentShareType, 1);
+    if (!canvas) return;
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    preview.innerHTML = '';
+    preview.appendChild(img);
+  });
+}
+
+function downloadCurrentShare() {
+  closeShareModal();
+  const dpr = Math.max(window.devicePixelRatio || 1, 2);
+  const canvas = buildShareCanvas(currentShareType, dpr);
+  if (!canvas) return;
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `claude-insights-${currentShareType}-${new Date().toISOString().slice(0, 10)}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+}
+
+function shareRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function shareWrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawShareContent(ctx, data, type, W, colors, draw) {
+  const pad = 28;
+  let y = pad + 16;
+
+  if (draw) {
+    ctx.fillStyle = colors.bg;
+    ctx.fillRect(0, 0, W, 9999);
+
+    // Title row
+    ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = colors.text;
+    ctx.textAlign = 'left';
+    ctx.fillText('claude-session-insights', pad, y + 14);
+
+    const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    ctx.font = '11px -apple-system, BlinkMacSystemFont, monospace';
+    ctx.fillStyle = colors.text3;
+    ctx.textAlign = 'right';
+    ctx.fillText(now, W - pad, y + 14);
+  }
+  y += 24 + 14;
+
+  if (draw) {
+    ctx.strokeStyle = colors.border;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W - pad, y); ctx.stroke();
+    // Gradient accent line
+    const grad = ctx.createLinearGradient(pad, 0, W - pad, 0);
+    grad.addColorStop(0, colors.green);
+    grad.addColorStop(0.5, colors.accent);
+    grad.addColorStop(1, colors.purple);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W - pad, y); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1;
+  }
+  y += 1 + 24;
+
+  // Score number
+  const score = data.overallScore || 0;
+  const scoreColor = score >= 80 ? colors.green : score >= 50 ? colors.yellow : colors.red;
+  if (draw) {
+    ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, monospace';
+    ctx.fillStyle = scoreColor;
+    ctx.textAlign = 'center';
+    ctx.fillText(score, W / 2, y + 56);
+  }
+  y += 64;
+
+  if (draw) {
+    ctx.font = '500 12px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = colors.text2;
+    ctx.textAlign = 'center';
+    ctx.fillText('Efficiency Score (7-day)', W / 2, y + 16);
+  }
+  y += 20 + 24;
+
+  // Badges
+  const badges = data.badges || [];
+  if (badges.length > 0) {
+    if (draw) {
+      ctx.font = '600 10px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillStyle = colors.text2;
+      ctx.textAlign = 'left';
+      ctx.fillText('BADGES EARNED', pad, y + 11);
+    }
+    y += 14 + 10;
+
+    const badgesPerRow = 3;
+    const gapX = 8;
+    const badgeW = Math.floor((W - pad * 2 - (badgesPerRow - 1) * gapX) / badgesPerRow);
+    const badgeH = 36;
+    const gapY = 8;
+
+    if (draw) {
+      badges.forEach((b, i) => {
+        const col = i % badgesPerRow;
+        const row = Math.floor(i / badgesPerRow);
+        const bx = pad + col * (badgeW + gapX);
+        const by = y + row * (badgeH + gapY);
+        const isNeg = b.negative;
+
+        ctx.fillStyle = isNeg ? colors.redDim : colors.surface;
+        shareRoundRect(ctx, bx, by, badgeW, badgeH, 7);
+        ctx.fill();
+
+        ctx.strokeStyle = isNeg ? colors.redBorder : colors.border;
+        ctx.lineWidth = 1;
+        shareRoundRect(ctx, bx, by, badgeW, badgeH, 7);
+        ctx.stroke();
+
+        ctx.font = '15px serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = colors.text;
+        ctx.fillText(BADGE_EMOJI[b.id] || '•', bx + 8, by + 23);
+
+        ctx.font = '600 11px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillStyle = isNeg ? colors.red : colors.text;
+        let name = b.name;
+        const maxNameW = badgeW - 38;
+        while (name.length > 3 && ctx.measureText(name + '\u2026').width > maxNameW) {
+          name = name.slice(0, -1);
+        }
+        if (name !== b.name) name += '\u2026';
+        ctx.fillText(name, bx + 30, by + 23);
+      });
+    }
+
+    const badgeRows = Math.ceil(badges.length / badgesPerRow);
+    y += badgeRows * (badgeH + gapY) - gapY + 20;
+  }
+
+  if (type === 'full' && data.overallSummary) {
+    if (draw) {
+      ctx.strokeStyle = colors.border;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W - pad, y); ctx.stroke();
+    }
+    y += 1 + 20;
+
+    if (draw) {
+      ctx.font = '600 10px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillStyle = colors.text2;
+      ctx.textAlign = 'left';
+      ctx.fillText("HOW YOU'RE USING CLAUDE CODE", pad, y + 11);
+    }
+    y += 14 + 10;
+
+    const textW = W - pad * 2;
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+    for (const p of data.overallSummary.paragraphs || []) {
+      const lines = shareWrapText(ctx, p, textW);
+      if (draw) {
+        ctx.fillStyle = colors.text;
+        ctx.textAlign = 'left';
+        for (const line of lines) {
+          ctx.fillText(line, pad, y + 14);
+          y += 22;
+        }
+      } else {
+        y += lines.length * 22;
+      }
+      y += 8;
+    }
+    y += 8;
+
+    if ((data.overallSummary.recommendations || []).length > 0) {
+      if (draw) {
+        ctx.strokeStyle = colors.border;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W - pad, y); ctx.stroke();
+      }
+      y += 1 + 16;
+
+      if (draw) {
+        ctx.font = '600 10px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillStyle = colors.accent;
+        ctx.textAlign = 'left';
+        ctx.fillText('RECOMMENDATIONS', pad, y + 11);
+      }
+      y += 14 + 10;
+
+      ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+      for (const r of data.overallSummary.recommendations) {
+        if (draw) {
+          ctx.font = '600 11px monospace';
+          ctx.fillStyle = colors.accent;
+          ctx.fillText('->', pad, y + 14);
+          ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillStyle = colors.text;
+          ctx.textAlign = 'left';
+        }
+        const lines = shareWrapText(ctx, r, textW - 22);
+        if (draw) {
+          for (const line of lines) {
+            ctx.fillText(line, pad + 22, y + 14);
+            y += 20;
+          }
+        } else {
+          y += lines.length * 20;
+        }
+        y += 8;
+      }
+      y += 8;
+    }
+  }
+
+  // Footer
+  y += 12;
+  if (draw) {
+    ctx.font = '10px -apple-system, BlinkMacSystemFont, monospace';
+    ctx.fillStyle = colors.text3;
+    ctx.textAlign = 'center';
+    ctx.fillText('claude-session-insights', W / 2, y);
+  }
+  y += pad;
+  return y;
 }
 
 // --- Init ---
