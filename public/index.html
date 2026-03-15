@@ -776,6 +776,65 @@
     transition: all 0.2s; font-size: 12px; font-weight: 500; white-space: nowrap;
   }
   .share-btn:hover { background: var(--surface3); color: var(--text); border-color: var(--border-hover); }
+  /* What's New */
+  .whatsnew-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 1100; align-items: center; justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  .whatsnew-overlay.open { display: flex; }
+  .whatsnew-modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px 32px; max-width: 480px; width: 90%;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.22); position: relative;
+  }
+  .whatsnew-modal::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .whatsnew-version {
+    font-size: 10px; font-family: var(--mono); color: var(--accent);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+  .whatsnew-modal h2 {
+    font-size: 17px; font-weight: 700; color: var(--text);
+  }
+  .whatsnew-items { list-style: none; margin-bottom: 22px; }
+  .whatsnew-items li {
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: 13px; color: var(--text2); line-height: 1.55; margin-bottom: 12px;
+  }
+  .whatsnew-items li:last-child { margin-bottom: 0; }
+  .whatsnew-items li .wi-icon {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 5px;
+    background: var(--accent-dim); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; margin-top: 1px;
+  }
+  .whatsnew-items li strong { color: var(--text); }
+  .whatsnew-x {
+    position: absolute; top: 12px; right: 14px; background: none; border: none;
+    color: var(--text3); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px;
+  }
+  .whatsnew-x:hover { color: var(--text); }
+  .whatsnew-actions { display: flex; gap: 8px; }
+  .whatsnew-dismiss {
+    flex: 1; padding: 9px; border-radius: 7px;
+    background: var(--accent-dim); border: 1px solid rgba(37,99,235,0.2);
+    color: var(--accent); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .whatsnew-dismiss:hover { background: rgba(37,99,235,0.15); }
+  .whatsnew-showme {
+    padding: 3px 10px; border-radius: 5px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text3); font-size: 11px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .whatsnew-showme:hover { color: var(--accent); border-color: var(--accent); }
+
   .share-overlay {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
     z-index: 1000; align-items: center; justify-content: center;
@@ -1249,6 +1308,33 @@ function renderDashboard(data) {
         <button class="ai-prompt-close" onclick="togglePromptView()">&times;</button>
         <h3>AI Insights Prompt</h3>
         <pre id="ai-prompt-content">Loading...</pre>
+      </div>
+    </div>
+    <div class="whatsnew-overlay" id="whatsnew-overlay" onclick="if(event.target===this)closeWhatsNew(false)">
+      <div class="whatsnew-modal">
+        <button class="whatsnew-x" onclick="closeWhatsNew(false)">&times;</button>
+        <div class="whatsnew-version">v0.4.0 — What's New</div>
+        <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:18px;">
+          <h2 style="margin-bottom:0">Workflow Optimizer</h2>
+          <button class="whatsnew-showme" onclick="showMeWhatsNew()">Take me there!</button>
+        </div>
+        <ul class="whatsnew-items">
+          <li>
+            <span class="wi-icon">&#9881;</span>
+            <span><strong>Rule-based suggestions</strong> — analyzes your badges, tool patterns, and session history to recommend skills, CLAUDE.md files, and subagents to create</span>
+          </li>
+          <li>
+            <span class="wi-icon">&#10024;</span>
+            <span><strong>AI artifact generation</strong> — streams ready-to-copy content: full CLAUDE.md text, skill prompt bodies, and agent configs tailored to your workflow</span>
+          </li>
+          <li>
+            <span class="wi-icon">&#128274;</span>
+            <span><strong>Context-aware plugin advice</strong> — only suggests MCP plugins where CLI tools have a real gap, avoiding unnecessary context overhead</span>
+          </li>
+        </ul>
+        <div class="whatsnew-actions">
+          <button class="whatsnew-dismiss" onclick="closeWhatsNew(true)">OK. Don't show again.</button>
+        </div>
       </div>
     </div>
     <div class="share-overlay" id="share-overlay" onclick="if(event.target===this)closeShareModal()">
@@ -2432,15 +2518,45 @@ function resumeAutoRefreshIfPaused() {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && currentView === 'session') closeSessionDrawer();
+  if (e.key === 'Escape' && document.getElementById('whatsnew-overlay')?.classList.contains('open')) closeWhatsNew(false);
 });
 
 fetchData().then(data => {
   currentData = data;
   renderDashboard(data);
+  maybeShowWhatsNew();
   loadCachedAIInsights();
   loadSuggestions();
   if (autoRefreshActive) startAutoRefresh();
 });
+
+// --- What's New ---
+
+const WHATS_NEW_VERSION = '0.4.0';
+
+function closeWhatsNew(persist) {
+  document.getElementById('whatsnew-overlay').classList.remove('open');
+  if (persist) localStorage.setItem('seenWhatsNew', WHATS_NEW_VERSION);
+}
+
+function showMeWhatsNew() {
+  closeWhatsNew(false);
+  setTimeout(() => {
+    const el = document.getElementById('optimizer-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.style.transition = 'box-shadow 0.3s';
+      el.style.boxShadow = '0 0 0 2px var(--accent)';
+      setTimeout(() => { el.style.boxShadow = ''; }, 1800);
+    }
+  }, 200);
+}
+
+function maybeShowWhatsNew() {
+  if (localStorage.getItem('seenWhatsNew') !== WHATS_NEW_VERSION) {
+    document.getElementById('whatsnew-overlay').classList.add('open');
+  }
+}
 
 // Live reload via SSE
 const sse = new EventSource('/api/reload');
