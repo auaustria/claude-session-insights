@@ -645,6 +645,129 @@
   }
   .ai-prompt-close:hover { color: var(--text); }
 
+  /* Workflow Optimizer */
+  .optimizer-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 28px; margin-bottom: 24px;
+    position: relative; overflow: visible; box-shadow: var(--shadow-card);
+  }
+  .optimizer-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    opacity: 0.7; border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .optimizer-card h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--accent); margin-bottom: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .optimizer-tabs {
+    display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .optimizer-tab {
+    padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text2); font-size: 11px;
+    font-weight: 500; cursor: pointer; transition: all 0.15s;
+  }
+  .optimizer-tab:hover { background: var(--surface3); color: var(--text); }
+  .optimizer-tab.active {
+    background: var(--accent-dim); border-color: rgba(37,99,235,0.3);
+    color: var(--accent); font-weight: 600;
+  }
+  .optimizer-tab .tab-count {
+    display: inline-block; min-width: 16px; height: 16px; border-radius: 8px;
+    background: var(--surface3); color: var(--text3); font-size: 10px;
+    text-align: center; line-height: 16px; margin-left: 4px;
+  }
+  .optimizer-tab.active .tab-count {
+    background: rgba(37,99,235,0.2); color: var(--accent);
+  }
+  .optimizer-panel { display: none; }
+  .optimizer-panel.active { display: block; }
+  .suggestion-empty {
+    color: var(--text3); font-size: 13px; padding: 16px 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .suggestion-card {
+    border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px;
+    margin-bottom: 10px; background: var(--surface2);
+    transition: border-color 0.15s;
+  }
+  .suggestion-card:last-child { margin-bottom: 0; }
+  .suggestion-card:hover { border-color: var(--border-hover); }
+  .suggestion-header {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    margin-bottom: 6px;
+  }
+  .suggestion-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+  .suggestion-priority {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .priority-high { background: var(--red-dim); color: var(--red); }
+  .priority-medium { background: var(--yellow-dim); color: var(--yellow); }
+  .priority-low { background: var(--surface3); color: var(--text3); }
+  .suggestion-rationale {
+    font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 8px;
+  }
+  .suggestion-meta {
+    font-size: 11px; color: var(--text3); font-family: var(--mono);
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .suggestion-meta span { display: flex; align-items: center; gap: 4px; }
+  .optimizer-ai-section {
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .optimizer-ai-controls {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .optimizer-generate-btn {
+    background: var(--accent-dim); border: 1px solid rgba(37,99,235,0.2);
+    color: var(--accent); padding: 8px 16px; border-radius: 7px;
+    cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;
+  }
+  .optimizer-generate-btn:hover {
+    background: rgba(37,99,235,0.15); border-color: rgba(37,99,235,0.3);
+  }
+  .optimizer-generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .optimizer-ai-content {
+    font-size: 13px; line-height: 1.75; color: var(--text);
+  }
+  .optimizer-ai-content h3 {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    margin: 16px 0 8px; text-transform: none; letter-spacing: normal;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .optimizer-ai-content p { margin-bottom: 8px; }
+  .optimizer-ai-content ul { padding-left: 18px; margin-bottom: 8px; }
+  .optimizer-ai-content li { margin-bottom: 4px; list-style: disc; }
+  .optimizer-ai-content strong { color: var(--text); }
+  .optimizer-ai-content code {
+    font-family: var(--mono); font-size: 11px; background: var(--surface3);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .optimizer-ai-content pre {
+    background: var(--surface3); border-radius: 6px; padding: 12px 14px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.6;
+    overflow-x: auto; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word;
+    position: relative;
+  }
+  .optimizer-ai-content hr {
+    border: none; border-top: 1px solid var(--border); margin: 16px 0;
+  }
+  .copy-btn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text3);
+    padding: 2px 8px; border-radius: 5px; cursor: pointer; font-size: 10px;
+    font-family: var(--mono); transition: all 0.15s; white-space: nowrap;
+  }
+  .copy-btn:hover { color: var(--text); border-color: var(--border-hover); }
+  .copy-btn.copied { color: var(--green); border-color: rgba(22,163,74,0.3); }
+  .optimizer-timestamp {
+    font-size: 10px; color: var(--text3); font-family: var(--mono);
+    margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+
   /* Share modal */
   .share-btn {
     background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
@@ -1076,6 +1199,14 @@ function renderDashboard(data) {
             <span class="warn-icon">⚠</span>
             <span>This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.</span>
           </div>
+        </div>
+      </div>
+    </section>
+    <section id="optimizer-section">
+      <div class="optimizer-card">
+        <h3>Workflow Optimizer</h3>
+        <div id="optimizer-body">
+          <div style="color:var(--text3); font-size:13px; padding: 4px 0 12px;">Loading suggestions<span id="optimizer-dots"></span></div>
         </div>
       </div>
     </section>
@@ -1590,6 +1721,309 @@ async function loadCachedAIInsights() {
   } catch {}
 }
 
+// --- Workflow Optimizer ---
+
+let optimizerSuggestions = null;
+let activeOptimizerTab = 'all';
+let cachedOptimizerAI = null;
+
+const OPTIMIZER_TABS = [
+  { id: 'all', label: 'All' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'claudeMd', label: 'CLAUDE.md' },
+  { id: 'agents', label: 'Agents' },
+  { id: 'plugins', label: 'Plugins' },
+];
+
+async function loadSuggestions() {
+  let dotCount = 0;
+  const dotsEl = document.getElementById('optimizer-dots');
+  const dotTimer = setInterval(() => {
+    dotCount = (dotCount + 1) % 4;
+    if (dotsEl) dotsEl.textContent = '.'.repeat(dotCount);
+  }, 400);
+
+  try {
+    const res = await fetch('/api/suggestions');
+    optimizerSuggestions = await res.json();
+    clearInterval(dotTimer);
+    renderOptimizerTabs();
+  } catch {
+    clearInterval(dotTimer);
+    const body = document.getElementById('optimizer-body');
+    if (body) body.innerHTML = '<div class="suggestion-empty">Could not load suggestions.</div>';
+  }
+}
+
+function renderOptimizerTabs() {
+  const body = document.getElementById('optimizer-body');
+  if (!body || !optimizerSuggestions) return;
+
+  const total = OPTIMIZER_TABS.reduce((s, t) => s + (optimizerSuggestions[t.id] || []).length, 0);
+  if (total === 0) {
+    body.innerHTML = '<div class="suggestion-empty">No suggestions — your workflow looks well-optimized!</div>';
+    return;
+  }
+
+  const tabsHtml = OPTIMIZER_TABS.map(t => {
+    const count = t.id === 'all' ? total : (optimizerSuggestions[t.id] || []).length;
+    return `<button class="optimizer-tab${t.id === activeOptimizerTab ? ' active' : ''}" onclick="switchOptimizerTab('${t.id}')">
+      ${t.label}<span class="tab-count">${count}</span>
+    </button>`;
+  }).join('');
+
+  const allPanelHtml = OPTIMIZER_TABS.filter(t => t.id !== 'all').map(t => {
+    const items = optimizerSuggestions[t.id] || [];
+    if (!items.length) return '';
+    return `<div style="margin-bottom:18px">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.7px;color:var(--text3);font-weight:600;margin-bottom:8px">${t.label}</div>
+      ${renderSuggestionList(t.id, items)}
+    </div>`;
+  }).join('');
+
+  const panelsHtml = OPTIMIZER_TABS.map(t => `
+    <div class="optimizer-panel${t.id === activeOptimizerTab ? ' active' : ''}" id="optimizer-panel-${t.id}">
+      ${t.id === 'all' ? allPanelHtml : renderSuggestionList(t.id, optimizerSuggestions[t.id] || [])}
+    </div>`).join('');
+
+  const aiSection = `
+    <div class="optimizer-ai-section">
+      <div class="optimizer-ai-controls">
+        <button class="optimizer-generate-btn" onclick="generateOptimizerContent()" id="optimizer-gen-btn">
+          Generate artifact content with AI
+        </button>
+        <span class="ai-model-picker" id="optimizer-model-picker">
+          <span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span>
+          <div class="ai-model-menu"></div>
+        </span>
+      </div>
+      <div id="optimizer-ai-output"></div>
+    </div>`;
+
+  body.innerHTML = `
+    <p style="font-size:12px; color:var(--text3); margin-bottom:12px;">
+      Based on ${(optimizerSuggestions.skills.length + optimizerSuggestions.claudeMd.length + optimizerSuggestions.agents.length + optimizerSuggestions.plugins.length)} patterns found in your sessions.
+    </p>
+    <div class="optimizer-tabs">${tabsHtml}</div>
+    ${panelsHtml}
+    ${aiSection}`;
+
+  // Sync model picker — reuse same aiModels
+  const optimizerPicker = document.getElementById('optimizer-model-picker');
+  if (optimizerPicker && aiModels.length > 0) {
+    const current = aiModels.find(m => m.id === selectedModelId) ||
+      aiModels.find(m => m.id === aiDefaultModel) || aiModels[0];
+    const pill = optimizerPicker.querySelector('.ai-model-pill');
+    const menu = optimizerPicker.querySelector('.ai-model-menu');
+    if (pill) pill.innerHTML = `${current.label} <span class="pill-chevron">&#x25BE;</span>`;
+    if (menu) menu.innerHTML = aiModels.map(m =>
+      `<div class="ai-model-option${m.id === selectedModelId ? ' active' : ''}" data-model="${m.id}" onclick="selectModel('${m.id}')">` +
+      `<span class="check">${m.id === selectedModelId ? '●' : ''}</span>${m.label}</div>`
+    ).join('');
+  }
+
+  if (cachedOptimizerAI) {
+    renderOptimizerAIComplete(cachedOptimizerAI.content, cachedOptimizerAI.generatedAt, cachedOptimizerAI.model);
+  }
+}
+
+function renderSuggestionList(type, items) {
+  if (!items.length) return '<div class="suggestion-empty">No suggestions for this category.</div>';
+  return items.map(item => {
+    const priorityClass = `priority-${item.priority || 'medium'}`;
+    const priorityLabel = (item.priority || 'medium').charAt(0).toUpperCase() + (item.priority || 'medium').slice(1);
+    let meta = '';
+    if (type === 'skills' && item.trigger) meta = `<span>trigger: <strong>${escHtml(item.trigger)}</strong></span>`;
+    if (type === 'claudeMd') meta = `<span>scope: <strong>${escHtml(item.scope)}${item.projectName ? ' · ' + escHtml(item.projectName) : ''}</strong></span>`;
+    if (type === 'plugins' && item.installCmd) meta = `<span style="font-family:var(--mono)">${escHtml(item.installCmd)}</span>`;
+    if (type === 'agents' && item.use_case) meta = `<span>${escHtml(item.use_case)}</span>`;
+    return `
+      <div class="suggestion-card">
+        <div class="suggestion-header">
+          <div class="suggestion-title">${escHtml(item.title || item.name || item.use_case || '')}</div>
+          <span class="suggestion-priority ${priorityClass}">${priorityLabel}</span>
+        </div>
+        <div class="suggestion-rationale">${escHtml(item.rationale)}</div>
+        ${meta ? `<div class="suggestion-meta">${meta}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function switchOptimizerTab(tabId) {
+  activeOptimizerTab = tabId;
+  document.querySelectorAll('.optimizer-panel').forEach(p => {
+    p.classList.toggle('active', p.id === `optimizer-panel-${tabId}`);
+  });
+  document.querySelectorAll('.optimizer-tab').forEach(t => {
+    const onclick = t.getAttribute('onclick') || '';
+    const match = onclick.match(/switchOptimizerTab\('([^']+)'\)/);
+    if (match) t.classList.toggle('active', match[1] === tabId);
+  });
+}
+
+function generateOptimizerContent() {
+  const btn = document.getElementById('optimizer-gen-btn');
+  const output = document.getElementById('optimizer-ai-output');
+  if (!btn || !output) return;
+
+  const wasActive = autoRefreshActive;
+  if (autoRefreshActive) pauseAutoRefresh();
+
+  const modelId = selectedModelId;
+  const modelParam = modelId ? `?model=${encodeURIComponent(modelId)}` : '';
+
+  btn.disabled = true;
+  output.innerHTML = `
+    <div class="ai-loading">
+      <div class="ai-spinner"></div>
+      <div>Generating with ${modelId ? modelLabel(modelId) : 'default model'}, please wait...</div>
+    </div>
+    <div class="optimizer-ai-content" id="optimizer-stream-content"></div>`;
+
+  streamOptimizerFetch(modelParam, output, wasActive);
+}
+
+async function streamOptimizerFetch(modelParam, output, wasActive) {
+  let fullContent = '';
+  let usedModel = '';
+
+  try {
+    const res = await fetch('/api/ai-suggestions' + modelParam, { method: 'POST' });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      let currentEvent = '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          currentEvent = line.slice(7);
+        } else if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (currentEvent === 'model') {
+            usedModel = JSON.parse(data);
+            const loading = output.querySelector('.ai-loading div:last-child');
+            if (loading) loading.textContent = `Generating with ${modelLabel(usedModel)}, please wait...`;
+          } else if (currentEvent === 'chunk') {
+            fullContent += JSON.parse(data);
+            const el = document.getElementById('optimizer-stream-content');
+            if (el) el.innerHTML = renderOptimizerMarkdown(escHtml(fullContent));
+          } else if (currentEvent === 'done') {
+            const { generatedAt, model } = JSON.parse(data);
+            if (model) usedModel = model;
+            const loading = output.querySelector('.ai-loading');
+            if (loading) loading.remove();
+            renderOptimizerAIComplete(fullContent, generatedAt, usedModel);
+            if (wasActive) resumeAutoRefreshIfPaused();
+          } else if (currentEvent === 'error') {
+            const { message } = JSON.parse(data);
+            const btn = document.getElementById('optimizer-gen-btn');
+            if (btn) btn.disabled = false;
+            output.innerHTML = `<div class="ai-error">${escHtml(message)}</div>
+              <button class="optimizer-generate-btn" style="margin-top:8px" onclick="generateOptimizerContent()">Retry</button>`;
+            if (wasActive) resumeAutoRefreshIfPaused();
+          }
+        }
+      }
+    }
+  } catch (err) {
+    const btn = document.getElementById('optimizer-gen-btn');
+    if (btn) btn.disabled = false;
+    output.innerHTML = `<div class="ai-error">Failed to connect to server</div>
+      <button class="optimizer-generate-btn" style="margin-top:8px" onclick="generateOptimizerContent()">Retry</button>`;
+    if (wasActive) resumeAutoRefreshIfPaused();
+  }
+}
+
+function renderOptimizerMarkdown(text) {
+  // Handle code blocks first to protect their content
+  const codeBlocks = [];
+  text = text.replace(/```[\s\S]*?```/g, (match) => {
+    const idx = codeBlocks.length;
+    codeBlocks.push(match);
+    return `__CODEBLOCK_${idx}__`;
+  });
+
+  text = text
+    .replace(/^### (.+)$/gm, (_, t) =>
+      `<h3>${t} <button class="copy-btn" onclick="copySection(this)">copy</button></h3>`)
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^\- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/gs, m => '<ul>' + m + '</ul>')
+    .replace(/^---$/gm, '<hr>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/^(?!<[hul])/gm, s => s ? '<p>' + s : '')
+    .replace(/<p><\/p>/g, '')
+    .replace(/<p>(<[hul])/g, '$1');
+
+  // Restore code blocks as <pre>
+  text = text.replace(/__CODEBLOCK_(\d+)__/g, (_, i) => {
+    const raw = codeBlocks[parseInt(i)];
+    const inner = raw.replace(/^```[^\n]*\n?/, '').replace(/```$/, '');
+    return `<pre>${escHtml(inner)}<button class="copy-btn" style="position:absolute;top:6px;right:6px" onclick="copyPre(this)">copy</button></pre>`;
+  });
+
+  return text;
+}
+
+function renderOptimizerAIComplete(content, generatedAt, model) {
+  cachedOptimizerAI = { content, generatedAt, model };
+  const output = document.getElementById('optimizer-ai-output');
+  const btn = document.getElementById('optimizer-gen-btn');
+  if (!output) return;
+  if (btn) btn.disabled = false;
+  output.innerHTML = `
+    <div class="optimizer-ai-content">${renderOptimizerMarkdown(escHtml(content))}</div>
+    <div class="optimizer-timestamp">
+      Generated ${new Date(generatedAt).toLocaleString()}${model ? ' · ' + modelLabel(model) : ''}
+      <button class="optimizer-generate-btn" style="padding:4px 12px;font-size:11px;margin-left:8px" onclick="generateOptimizerContent()">Regenerate</button>
+      <button class="optimizer-generate-btn" style="padding:4px 12px;font-size:11px;background:var(--surface2);color:var(--text2)" onclick="clearOptimizerAI()">Clear</button>
+    </div>`;
+}
+
+function clearOptimizerAI() {
+  cachedOptimizerAI = null;
+  fetch('/api/ai-suggestions', { method: 'DELETE' }).catch(() => {});
+  const output = document.getElementById('optimizer-ai-output');
+  const btn = document.getElementById('optimizer-gen-btn');
+  if (output) output.innerHTML = '';
+  if (btn) btn.disabled = false;
+}
+
+function copySection(btn) {
+  const h3 = btn.closest('h3');
+  const section = [];
+  let el = h3?.nextElementSibling;
+  while (el && el.tagName !== 'H3' && el.tagName !== 'HR') {
+    section.push(el.innerText || el.textContent);
+    el = el.nextElementSibling;
+  }
+  const text = section.join('\n\n').trim();
+  if (text) copyToClipboard(btn, text);
+}
+
+function copyPre(btn) {
+  const pre = btn.closest('pre');
+  if (pre) copyToClipboard(btn, pre.textContent.replace('copy', '').trim());
+}
+
+function copyToClipboard(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {});
+}
+
 // --- Share as PNG ---
 
 const BADGE_EMOJI = BADGE_ICONS;
@@ -2004,6 +2438,7 @@ fetchData().then(data => {
   currentData = data;
   renderDashboard(data);
   loadCachedAIInsights();
+  loadSuggestions();
   if (autoRefreshActive) startAutoRefresh();
 });
 

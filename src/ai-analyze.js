@@ -124,7 +124,79 @@ Keep the entire response under 400 words. Use markdown formatting.`;
 
 export { buildPrompt, buildDataSnapshot };
 
+function buildSuggestionsPrompt(scoredData, suggestions) {
+  const { sessions, badges, overallScore } = scoredData;
+  const totalCost = sessions.reduce((s, x) => s + x.totals.estimatedCost, 0);
+  const projectNames = [...new Set(sessions.map((s) => s.project).filter(Boolean))].slice(0, 5);
+  const badgeNames = badges.map((b) => `${b.negative ? "⚠ " : "✓ "}${b.name}`).join(", ");
+
+  const topSkill = suggestions.skills[0];
+  const topClaudeMd = suggestions.claudeMd[0];
+  const topAgent = suggestions.agents[0];
+  const topPlugin = suggestions.plugins[0];
+
+  const parts = [];
+
+  if (topSkill) {
+    parts.push(`SKILL: "${topSkill.trigger}" — ${topSkill.title}
+Template hint: ${topSkill.templateHint}`);
+  }
+  if (topClaudeMd) {
+    parts.push(`CLAUDE.MD (${topClaudeMd.scope}${topClaudeMd.projectName ? ` for ${topClaudeMd.projectName}` : ""}):
+Sections to include: ${topClaudeMd.sections.join(", ")}`);
+  }
+  if (topAgent) {
+    parts.push(`AGENT: ${topAgent.name} — ${topAgent.use_case}
+Example usage: ${topAgent.example || "n/a"}`);
+  }
+  if (topPlugin) {
+    parts.push(`PLUGIN: ${topPlugin.name}
+Install: ${topPlugin.installCmd}`);
+  }
+
+  return `You are helping a developer improve their Claude Code workflow. Based on their session data, generate ready-to-use artifact content for the following recommendations.
+
+## Their Usage Context
+- ${sessions.length} total sessions across ${projectNames.length} project(s): ${projectNames.join(", ")}
+- Overall efficiency score: ${overallScore}/100
+- Total spend: $${totalCost.toFixed(2)}
+- Badges: ${badgeNames || "none"}
+
+## Recommendations to generate content for
+
+${parts.join("\n\n")}
+
+## Your output
+
+For each recommendation above, generate the actual content the user can copy and use immediately. Use this exact structure:
+
+${topSkill ? `### Skill: ${topSkill.trigger}
+Write the full skill prompt body (2-4 paragraphs). This is what Claude reads when the user types "${topSkill.trigger}". Make it specific, actionable, and tailored to the usage patterns above. Include what information the user should provide.
+
+---` : ""}
+
+${topClaudeMd ? `### CLAUDE.md${topClaudeMd.projectName ? ` (${topClaudeMd.projectName})` : " (global)"}
+Write a complete, ready-to-use CLAUDE.md file. Include all the sections listed. Be specific about the patterns implied by their badges and session data. Use markdown formatting.
+
+---` : ""}
+
+${topAgent ? `### Agent: ${topAgent.name}
+Describe exactly how to configure and invoke this agent in Claude Code. Include a sample prompt to use it effectively.
+
+---` : ""}
+
+${topPlugin ? `### Plugin: ${topPlugin.name}
+Explain the 2-3 best use cases for this plugin given their workflow, and give a sample prompt that takes advantage of it.
+
+---` : ""}
+
+Keep each artifact concise and immediately usable. No filler or generic advice.`;
+}
+
+export { buildSuggestionsPrompt };
+
 let cachedResult = null;
+let cachedSuggestionResult = null;
 const activeChildren = new Set();
 
 /**
@@ -274,4 +346,115 @@ export function getAvailableModels() {
     defaultModel: detectedDefaultModel,
     defaultModelLabel: prettyModelName(detectedDefaultModel),
   };
+}
+
+/**
+ * Stream AI-generated suggestion content (skills, CLAUDE.md, agents, plugins).
+ * Same SSE protocol as streamAIAnalysis.
+ */
+export function streamAISuggestions(scoredData, suggestions, res, modelId) {
+  const prompt = buildSuggestionsPrompt(scoredData, suggestions);
+
+  const args = ["-p", "-", "--output-format", "stream-json", "--verbose"];
+  if (modelId) args.push("--model", modelId);
+
+  const resolvedModel = modelId || "default";
+  console.log(`[ai-suggestions] Starting (model: ${resolvedModel})`);
+  res.write(`event: model\ndata: ${JSON.stringify(resolvedModel)}\n\n`);
+
+  const child = spawn("claude", args, {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: cleanEnv,
+  });
+  activeChildren.add(child);
+
+  child.stdin.write(prompt);
+  child.stdin.end();
+
+  let fullContent = "";
+  let errOutput = "";
+  let detectedModel = modelId || detectedDefaultModel || null;
+  let lineBuf = "";
+
+  child.stdout.on("data", (buf) => {
+    lineBuf += buf.toString();
+    const lines = lineBuf.split("\n");
+    lineBuf = lines.pop();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const obj = JSON.parse(line);
+        if (obj.type === "system" || obj.type === "rate_limit_event") continue;
+        if (obj.type === "result") {
+          const models = Object.keys(obj.modelUsage || {});
+          if (models.length > 0) {
+            detectedModel = models[0];
+            if (!modelId) detectedDefaultModel = models[0];
+          }
+          continue;
+        }
+        if (obj.type === "assistant" && obj.message?.content) {
+          for (const block of obj.message.content) {
+            if (block.type === "text" && block.text) {
+              fullContent += block.text;
+              res.write(`event: chunk\ndata: ${JSON.stringify(block.text)}\n\n`);
+            }
+          }
+          if (obj.message.model && !detectedModel) {
+            detectedModel = obj.message.model;
+            if (!modelId) detectedDefaultModel = obj.message.model;
+          }
+        }
+      } catch {
+        if (line.trim()) {
+          fullContent += line;
+          res.write(`event: chunk\ndata: ${JSON.stringify(line)}\n\n`);
+        }
+      }
+    }
+  });
+
+  child.stderr.on("data", (buf) => {
+    errOutput += buf.toString();
+  });
+
+  child.on("error", (err) => {
+    const message =
+      err.code === "ENOENT"
+        ? "Claude CLI not found. Make sure `claude` is installed and in your PATH."
+        : `Claude CLI error: ${err.message}`;
+    res.write(`event: error\ndata: ${JSON.stringify({ message })}\n\n`);
+    res.end();
+  });
+
+  child.on("close", (code) => {
+    activeChildren.delete(child);
+    if (code !== 0 && !fullContent) {
+      const message = errOutput.trim() || `Claude CLI exited with code ${code}`;
+      res.write(`event: error\ndata: ${JSON.stringify({ message })}\n\n`);
+    } else {
+      const finalModel = detectedModel || resolvedModel;
+      cachedSuggestionResult = {
+        content: fullContent.trim(),
+        generatedAt: new Date().toISOString(),
+        model: finalModel,
+      };
+      res.write(
+        `event: done\ndata: ${JSON.stringify({ generatedAt: cachedSuggestionResult.generatedAt, model: finalModel })}\n\n`
+      );
+    }
+    res.end();
+  });
+
+  res.on("close", () => {
+    if (child.exitCode === null) child.kill();
+  });
+}
+
+export function getCachedSuggestions() {
+  return cachedSuggestionResult;
+}
+
+export function clearCachedSuggestions() {
+  cachedSuggestionResult = null;
 }

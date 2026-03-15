@@ -7,7 +7,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { parseAllSessions } from "./parser.js";
 import { scoreAllSessions } from "./scorer.js";
-import { streamAIAnalysis, getCachedAnalysis, clearCachedAnalysis, getAvailableModels, killActiveProcesses, detectDefaultModel, buildPrompt, buildDataSnapshot } from "./ai-analyze.js";
+import { streamAIAnalysis, getCachedAnalysis, clearCachedAnalysis, getAvailableModels, killActiveProcesses, detectDefaultModel, buildPrompt, buildDataSnapshot, streamAISuggestions, getCachedSuggestions, clearCachedSuggestions } from "./ai-analyze.js";
+import { generateSuggestions } from "./suggestions.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -175,6 +176,35 @@ export function startServer(port = 6543) {
           defaultModel,
           defaultModelLabel,
         });
+      }
+
+      if (url.pathname === "/api/suggestions" && req.method === "GET") {
+        const data = await getData();
+        const suggestions = generateSuggestions(data);
+        return json(res, suggestions);
+      }
+
+      if (url.pathname === "/api/ai-suggestions" && req.method === "POST") {
+        const data = await getData();
+        const suggestions = generateSuggestions(data);
+        const modelId = url.searchParams.get("model") || "";
+        res.writeHead(200, {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        });
+        streamAISuggestions(data, suggestions, res, modelId || undefined);
+        return;
+      }
+
+      if (url.pathname === "/api/ai-suggestions" && req.method === "DELETE") {
+        clearCachedSuggestions();
+        return json(res, { ok: true });
+      }
+
+      if (url.pathname === "/api/ai-suggestions" && req.method === "GET") {
+        const cached = getCachedSuggestions();
+        return json(res, cached || { content: null });
       }
 
       if (url.pathname === "/api/refresh") {
