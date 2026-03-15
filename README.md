@@ -10,6 +10,7 @@ Think "Spotify Wrapped" for your Claude Code usage — scores, summaries, badges
 - **Overall Summary** — natural-language assessment of your prompting habits with specific recommendations
 - **Per-Session Summary** — each session gets a plain-English breakdown of what happened, what went well, and what could improve
 - **Session Drill-down** — click any session to see the full conversation timeline with per-turn token counts, costs, tool calls, and prompt previews
+- **Workflow Optimizer** — analyzes your session patterns and recommends Claude Code setup improvements: skills to create, CLAUDE.md files to write, and subagents to configure. Optional AI generation produces ready-to-copy artifact content (full CLAUDE.md text, skill prompt bodies, agent configs)
 - **AI Insights** — on-demand deeper analysis powered by the Claude CLI, with model picker (Sonnet, Opus, Haiku) and streaming output
 - **Heaviest Sessions** — top sessions ranked by cost for quick identification of expensive outliers
 - **Daily Score Chart** — trend visualization of your efficiency score, session count, tokens, and cost over time
@@ -75,6 +76,19 @@ The dashboard generates rule-based summaries at two levels:
 **Overall** — analyzes patterns across all your sessions: session length habits, prompt specificity, cache efficiency, model selection, and cost distribution. Surfaces 2-3 key findings and concrete recommendations.
 
 **Per-session** — classifies each session (quick fix, focused task, long refactor), identifies the main cost driver, and highlights strengths. Displayed at the top of the session detail view.
+
+## Workflow Optimizer
+
+Closes the loop from "how am I doing?" to "here's what to build to do better." The optimizer runs two phases:
+
+**Phase 1 — Rule-based suggestions (instant):** Detects patterns from your badges, tool usage, session titles, and project history to recommend:
+
+- **Skills** — slash commands to create in `~/.claude/skills/`. Example: if you have the Vague Commander badge, it suggests a `/spec` skill to help you write thorough task specs before Claude starts working
+- **CLAUDE.md** — project-scoped or global config files to reduce repeated explanations. Triggered by projects with 5+ sessions, the Context Hoarder badge, Opus overuse, etc.
+- **Agents** — subagent configurations for offloading exploration or repetitive task types
+- **Plugins** — MCP servers only where CLI tools have a genuine capability gap (e.g. Playwright for browser tasks, not tools with good CLI equivalents that would just add context overhead)
+
+**Phase 2 — AI content generation (optional):** Click "Generate artifact content with AI" to stream ready-to-copy content for each suggestion — the actual CLAUDE.md file, the real skill prompt body, agent configuration — not just a description of what to build.
 
 ## AI Insights
 
