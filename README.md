@@ -10,8 +10,8 @@ Think "Spotify Wrapped" for your Claude Code usage — scores, summaries, badges
 - **Overall Summary** — natural-language assessment of your prompting habits with specific recommendations
 - **Per-Session Summary** — each session gets a plain-English breakdown of what happened, what went well, and what could improve
 - **Session Drill-down** — click any session to see the full conversation timeline with per-turn token counts, costs, tool calls, and prompt previews
-- **Workflow Optimizer** — analyzes your session patterns and recommends Claude Code setup improvements: skills to create, CLAUDE.md files to write, and subagents to configure. Optional AI generation produces ready-to-copy artifact content (full CLAUDE.md text, skill prompt bodies, agent configs)
-- **AI Insights** — on-demand deeper analysis powered by the Claude CLI, with model picker (Sonnet, Opus, Haiku) and streaming output
+- **Session Intelligence** — unified card combining a rule-based overview (patterns, model choices, token habits) with on-demand **AI Analyze** powered by Claude, with model picker (Sonnet, Opus, Haiku) and streaming output
+- **Workflow Optimizer** — analyzes session patterns and recommends Claude Code setup improvements: skills, CLAUDE.md files, agents, and plugins. Pattern-based suggestions load instantly; **AI Optimize** generates AI-enhanced suggestions (defaults to Opus). Optional AI artifact content generation produces ready-to-copy CLAUDE.md files, skill prompts, and agent configs
 - **Heaviest Sessions** — top sessions ranked by cost for quick identification of expensive outliers
 - **Daily Score Chart** — trend visualization of your efficiency score, session count, tokens, and cost over time
 - **Badges** — positive achievements (Surgical Prompter, Cache Whisperer, etc.) and negative anti-patterns (Opus Addict, Token Furnace, etc.)
@@ -79,27 +79,33 @@ The dashboard generates rule-based summaries at two levels:
 
 ## Workflow Optimizer
 
-Closes the loop from "how am I doing?" to "here's what to build to do better." The optimizer runs two phases:
+Closes the loop from "how am I doing?" to "here's what to build to do better."
 
-**Phase 1 — Rule-based suggestions (instant):** Detects patterns from your badges, tool usage, session titles, and project history to recommend:
+**Pattern-based suggestions (instant):** Detects patterns from your badges, tool usage, session titles, and project history to recommend:
 
 - **Skills** — slash commands to create in `~/.claude/skills/`. Example: if you have the Vague Commander badge, it suggests a `/spec` skill to help you write thorough task specs before Claude starts working
 - **CLAUDE.md** — project-scoped or global config files to reduce repeated explanations. Triggered by projects with 5+ sessions, the Context Hoarder badge, Opus overuse, etc.
 - **Agents** — subagent configurations for offloading exploration or repetitive task types
 - **Plugins** — MCP servers only where CLI tools have a genuine capability gap (e.g. Playwright for browser tasks, not tools with good CLI equivalents that would just add context overhead)
 
-**Phase 2 — AI content generation (optional):** Click "Generate artifact content with AI" to stream ready-to-copy content for each suggestion — the actual CLAUDE.md file, the real skill prompt body, agent configuration — not just a description of what to build.
+**AI Optimize (optional):** Click "AI Optimize" to stream AI-generated suggestions that either replace or supplement the pattern-based ones — defaults to Opus. AI suggestions appear at the top of the card when generated and persist across refreshes until cleared.
 
-## AI Insights
+**Artifact content generation (optional):** Click "Generate artifact content with AI" on any suggestion card to stream ready-to-copy content — the actual CLAUDE.md file, the real skill prompt body, agent configuration — not just a description of what to build.
 
-Click "Generate AI Insights" to run a deeper analysis using the Claude CLI. This streams a response via SSE that covers:
+## Session Intelligence
+
+The Session Intelligence card combines a rule-based overview of your prompting habits with on-demand AI analysis.
+
+The static overview surfaces patterns across your sessions: cache efficiency, model selection, prompt specificity, and cost distribution.
+
+Click **AI Analyze** to run a deeper analysis using the Claude CLI. This streams a response via SSE that covers:
 
 - **Key Patterns** — non-obvious trends the static rules miss (time-of-day patterns, project-specific habits, cost trajectories)
 - **Biggest Opportunities** — specific workflow changes with quantified potential savings
 - **What's Working Well** — habits worth keeping
 - **Standout Session** — the most interesting session and what can be learned from it
 
-You can pick which model to use (Sonnet, Opus, or Haiku) from the model picker. Results are cached for the session. Requires the `claude` CLI to be installed and in your PATH.
+AI analysis appears at the top of the card when generated and persists across refreshes until cleared. You can pick which model to use (Sonnet, Opus, or Haiku) from the model picker. Requires the `claude` CLI to be installed and in your PATH.
 
 ## Badges
 
