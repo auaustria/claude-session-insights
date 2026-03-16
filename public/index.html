@@ -607,12 +607,22 @@
   .ai-model-option:hover { background: var(--surface2); }
   .ai-model-option.active { color: var(--text); font-weight: 600; }
   .ai-model-option .check { width: 14px; color: var(--purple); font-size: 13px; }
-  .ai-token-warning {
-    margin-top: 10px; padding: 8px 12px; border-radius: 6px;
-    background: rgba(255,200,80,0.07); border: 1px solid rgba(255,200,80,0.2);
-    font-size: 11px; color: var(--text3); display: flex; align-items: flex-start; gap: 7px;
+  [data-warn] { position: relative; }
+  [data-warn]:hover::before {
+    content: attr(data-warn);
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: var(--surface); border: 1px solid rgba(255,200,80,0.3);
+    color: var(--text2); font-size: 11px; font-weight: 400;
+    padding: 7px 10px; border-radius: 6px; pointer-events: none; z-index: 300;
+    white-space: normal; max-width: 260px; width: max-content; line-height: 1.5;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
   }
-  .ai-token-warning .warn-icon { color: #f5c842; flex-shrink: 0; margin-top: 1px; }
+  [data-warn]:hover::after {
+    content: '';
+    position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: rgba(255,200,80,0.3);
+    pointer-events: none; z-index: 300;
+  }
   .ai-model-label {
     font-size: 10px; color: var(--text3); font-family: var(--mono);
     display: flex; align-items: center; gap: 6px;
@@ -644,6 +654,68 @@
     color: var(--text3); cursor: pointer; font-size: 18px; line-height: 1; padding: 4px;
   }
   .ai-prompt-close:hover { color: var(--text); }
+
+  /* Workflow Optimizer — mode toggle (Static / AI Suggestions) */
+  .optimizer-mode-tabs {
+    display: flex; gap: 4px; margin-bottom: 16px;
+  }
+  .optimizer-mode-tab {
+    padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text2); font-size: 12px;
+    font-weight: 500; cursor: pointer; transition: all 0.15s;
+  }
+  .optimizer-mode-tab:hover { background: var(--surface3); color: var(--text); }
+  .optimizer-mode-tab.active {
+    background: var(--accent-dim); border-color: rgba(37,99,235,0.3);
+    color: var(--accent); font-weight: 600;
+  }
+  .optimizer-mode-panel { display: none; }
+  .optimizer-mode-panel.active { display: block; }
+  .optimizer-ai-panel-header {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .optimizer-ai-suggestions-output { margin-top: 4px; }
+  .ai-optimizer-model-picker {
+    position: relative; display: inline-flex; align-items: center;
+  }
+  .ai-optimizer-model-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text3);
+    padding: 5px 10px; border-radius: 20px; font-size: 11px; font-family: var(--mono);
+    cursor: pointer; transition: all 0.2s; user-select: none; position: relative;
+  }
+  .ai-optimizer-model-pill:hover { border-color: var(--border-hover); color: var(--text2); }
+  .ai-optimizer-model-pill[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: var(--text); color: var(--bg); font-size: 10px; white-space: nowrap;
+    padding: 4px 8px; border-radius: 4px; pointer-events: none; z-index: 200;
+  }
+  .ai-optimizer-model-picker.open .pill-chevron { transform: rotate(180deg); }
+  .ai-optimizer-model-menu {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 200;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    min-width: 140px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); overflow: hidden;
+  }
+  .ai-optimizer-model-picker.open .ai-optimizer-model-menu { display: block; }
+  .ai-optimizer-model-option {
+    padding: 8px 12px; font-size: 12px; cursor: pointer; display: flex;
+    align-items: center; gap: 8px; color: var(--text2); transition: background 0.1s;
+  }
+  .ai-optimizer-model-option:hover { background: var(--surface2); color: var(--text); }
+  .ai-optimizer-model-option.active { color: var(--accent); }
+  .ai-optimizer-model-option .check { width: 10px; font-size: 8px; color: var(--accent); }
+  .ai-suggestions-type-group { margin-bottom: 18px; }
+  .ai-suggestions-type-group:last-child { margin-bottom: 0; }
+  .ai-suggestions-type-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.7px;
+    color: var(--text3); font-weight: 600; margin-bottom: 8px;
+  }
+  .ai-suggestion-badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 9px;
+    font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+    background: rgba(37,99,235,0.1); color: var(--accent); vertical-align: middle;
+  }
 
   /* Workflow Optimizer */
   .optimizer-card {
@@ -1250,14 +1322,10 @@ function renderDashboard(data) {
         <h3>AI Insights</h3>
         <div id="ai-insights-body">
           <div class="ai-controls">
-            <button class="ai-generate-btn" onclick="generateAIInsights()">Generate AI Insights</button>
+            <button class="ai-generate-btn" onclick="generateAIInsights()" data-warn="⚠ This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.">Generate AI Insights</button>
             <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
           </div>
           <button class="score-info-toggle" onclick="togglePromptView()">What prompt is it sending to Claude?</button>
-          <div class="ai-token-warning">
-            <span class="warn-icon">⚠</span>
-            <span>This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.</span>
-          </div>
         </div>
       </div>
     </section>
@@ -1638,6 +1706,7 @@ function selectModel(modelId) {
 
 document.addEventListener('click', () => {
   document.querySelectorAll('.ai-model-picker.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.ai-optimizer-model-picker.open').forEach(p => p.classList.remove('open'));
 });
 
 function applyAIState() {
@@ -1658,7 +1727,7 @@ function renderAIComplete(content, generatedAt, model) {
       Generated ${new Date(generatedAt).toLocaleString()}
       ${model ? ` · ${modelLabel(model)}` : ''}
       <div style="margin-top: 10px;" class="ai-controls">
-        <button class="ai-generate-btn" style="padding: 5px 14px; font-size: 11px;" onclick="generateAIInsights()">Regenerate</button>
+        <button class="ai-generate-btn" style="padding: 5px 14px; font-size: 11px;" onclick="generateAIInsights()" data-warn="⚠ This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.">Regenerate</button>
         <button class="ai-generate-btn" style="padding: 5px 14px; font-size: 11px; background: var(--surface2); color: var(--text2);" onclick="clearAIInsights()">Clear</button>
         <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
       </div>
@@ -1674,14 +1743,10 @@ function clearAIInsights() {
   if (!body) return;
   body.innerHTML = `
     <div class="ai-controls">
-      <button class="ai-generate-btn" onclick="generateAIInsights()">Generate AI Insights</button>
+      <button class="ai-generate-btn" onclick="generateAIInsights()" data-warn="⚠ This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.">Generate AI Insights</button>
       <span class="ai-model-picker" id="ai-model-picker"><span class="ai-model-pill" onclick="toggleModelMenu(event)" data-tip="Click to switch model"></span><div class="ai-model-menu"></div></span>
     </div>
-    <button class="score-info-toggle" onclick="togglePromptView()">What prompt is it sending to Claude?</button>
-    <div class="ai-token-warning">
-      <span class="warn-icon">⚠</span>
-      <span>This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.</span>
-    </div>`;
+    <button class="score-info-toggle" onclick="togglePromptView()">What prompt is it sending to Claude?</button>`;
   renderModelPicker();
 }
 
@@ -1812,6 +1877,9 @@ async function loadCachedAIInsights() {
 let optimizerSuggestions = null;
 let activeOptimizerTab = 'all';
 let cachedOptimizerAI = null;
+let optimizerMode = 'static'; // 'static' | 'ai'
+let aiOptimizerModelId = 'claude-opus-4-6'; // default Opus for AI suggestions
+let cachedAIOptimizerSuggestions = null; // { suggestions, generatedAt, model }
 
 const OPTIMIZER_TABS = [
   { id: 'all', label: 'All' },
@@ -1830,8 +1898,15 @@ async function loadSuggestions() {
   }, 400);
 
   try {
-    const res = await fetch('/api/suggestions');
-    optimizerSuggestions = await res.json();
+    const [suggestionsRes, aiCacheRes] = await Promise.all([
+      fetch('/api/suggestions'),
+      fetch('/api/ai-optimizer'),
+    ]);
+    optimizerSuggestions = await suggestionsRes.json();
+    const aiCache = await aiCacheRes.json();
+    if (aiCache.suggestions) {
+      cachedAIOptimizerSuggestions = aiCache;
+    }
     clearInterval(dotTimer);
     renderOptimizerTabs();
   } catch {
@@ -1875,7 +1950,7 @@ function renderOptimizerTabs() {
   const aiSection = `
     <div class="optimizer-ai-section">
       <div class="optimizer-ai-controls">
-        <button class="optimizer-generate-btn" onclick="generateOptimizerContent()" id="optimizer-gen-btn">
+        <button class="optimizer-generate-btn" onclick="generateOptimizerContent()" id="optimizer-gen-btn" data-warn="⚠ This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.">
           Generate artifact content with AI
         </button>
         <span class="ai-model-picker" id="optimizer-model-picker">
@@ -1886,15 +1961,52 @@ function renderOptimizerTabs() {
       <div id="optimizer-ai-output"></div>
     </div>`;
 
-  body.innerHTML = `
-    <p style="font-size:12px; color:var(--text3); margin-bottom:12px;">
-      Based on ${(optimizerSuggestions.skills.length + optimizerSuggestions.claudeMd.length + optimizerSuggestions.agents.length + optimizerSuggestions.plugins.length)} patterns found in your sessions.
-    </p>
-    <div class="optimizer-tabs">${tabsHtml}</div>
-    ${panelsHtml}
-    ${aiSection}`;
+  // Build AI suggestions panel
+  const opusModel = aiModels.find(m => m.id === 'claude-opus-4-6') || aiModels[0];
+  const currentAIModel = aiModels.find(m => m.id === aiOptimizerModelId) || opusModel || aiModels[0];
+  const aiModelMenuHtml = aiModels.map(m =>
+    `<div class="ai-optimizer-model-option${m.id === aiOptimizerModelId ? ' active' : ''}" onclick="selectAIOptimizerModel('${m.id}')">` +
+    `<span class="check">${m.id === aiOptimizerModelId ? '●' : ''}</span>${m.label}</div>`
+  ).join('');
 
-  // Sync model picker — reuse same aiModels
+  const aiSuggestionsPanel = `
+    <div class="optimizer-ai-panel-header">
+      <div class="ai-optimizer-model-picker" id="ai-optimizer-model-picker" onclick="event.stopPropagation()">
+        <div class="ai-optimizer-model-pill" onclick="toggleAIOptimizerModelMenu()" data-tip="Click to switch model">${currentAIModel ? currentAIModel.label : 'Opus 4.6'} <span class="pill-chevron">&#x25BE;</span></div>
+        <div class="ai-optimizer-model-menu">${aiModelMenuHtml}</div>
+      </div>
+      <button class="optimizer-generate-btn" onclick="generateAIOptimizerSuggestions()" id="ai-optimizer-gen-btn" data-warn="⚠ This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.">
+        Optimize with AI
+      </button>
+    </div>
+    <div class="optimizer-ai-suggestions-output" id="ai-optimizer-suggestions-output">
+      <div style="font-size:12px; color:var(--text3); padding: 4px 0;">
+        AI will analyze your session patterns and generate enhanced suggestions using ${currentAIModel ? currentAIModel.label : 'Opus 4.6'}.
+        These may replace or add to the static suggestions.
+      </div>
+    </div>`;
+
+  const modeTabs = `
+    <div class="optimizer-mode-tabs">
+      <button class="optimizer-mode-tab${optimizerMode === 'static' ? ' active' : ''}" onclick="switchOptimizerMode('static')">Static</button>
+      <button class="optimizer-mode-tab${optimizerMode === 'ai' ? ' active' : ''}" onclick="switchOptimizerMode('ai')">AI Suggestions</button>
+    </div>`;
+
+  body.innerHTML = `
+    ${modeTabs}
+    <div class="optimizer-mode-panel${optimizerMode === 'static' ? ' active' : ''}" id="optimizer-static-panel">
+      <p style="font-size:12px; color:var(--text3); margin-bottom:12px;">
+        Based on ${total} patterns found in your sessions.
+      </p>
+      <div class="optimizer-tabs">${tabsHtml}</div>
+      ${panelsHtml}
+      ${aiSection}
+    </div>
+    <div class="optimizer-mode-panel${optimizerMode === 'ai' ? ' active' : ''}" id="optimizer-ai-suggestions-panel">
+      ${aiSuggestionsPanel}
+    </div>`;
+
+  // Sync artifact content model picker
   const optimizerPicker = document.getElementById('optimizer-model-picker');
   if (optimizerPicker && aiModels.length > 0) {
     const current = aiModels.find(m => m.id === selectedModelId) ||
@@ -1911,9 +2023,13 @@ function renderOptimizerTabs() {
   if (cachedOptimizerAI) {
     renderOptimizerAIComplete(cachedOptimizerAI.content, cachedOptimizerAI.generatedAt, cachedOptimizerAI.model);
   }
+
+  if (cachedAIOptimizerSuggestions) {
+    renderAIOptimizerSuggestionsComplete(cachedAIOptimizerSuggestions.suggestions, cachedAIOptimizerSuggestions.generatedAt, cachedAIOptimizerSuggestions.model);
+  }
 }
 
-function renderSuggestionList(type, items) {
+function renderSuggestionList(type, items, isAI = false) {
   if (!items.length) return '<div class="suggestion-empty">No suggestions for this category.</div>';
   return items.map(item => {
     const priorityClass = `priority-${item.priority || 'medium'}`;
@@ -1923,10 +2039,12 @@ function renderSuggestionList(type, items) {
     if (type === 'claudeMd') meta = `<span>scope: <strong>${escHtml(item.scope)}${item.projectName ? ' · ' + escHtml(item.projectName) : ''}</strong></span>`;
     if (type === 'plugins' && item.installCmd) meta = `<span style="font-family:var(--mono)">${escHtml(item.installCmd)}</span>`;
     if (type === 'agents' && item.use_case) meta = `<span>${escHtml(item.use_case)}</span>`;
+    const aiNewBadge = isAI && item.aiNew ? '<span class="ai-suggestion-badge">AI new</span>' : '';
+    const aiEnhancedBadge = isAI && item.aiEnhanced ? '<span class="ai-suggestion-badge">AI enhanced</span>' : '';
     return `
       <div class="suggestion-card">
         <div class="suggestion-header">
-          <div class="suggestion-title">${escHtml(item.title || item.name || item.use_case || '')}</div>
+          <div class="suggestion-title">${escHtml(item.title || item.name || item.use_case || '')}${aiNewBadge}${aiEnhancedBadge}</div>
           <span class="suggestion-priority ${priorityClass}">${priorityLabel}</span>
         </div>
         <div class="suggestion-rationale">${escHtml(item.rationale)}</div>
@@ -1945,6 +2063,199 @@ function switchOptimizerTab(tabId) {
     const match = onclick.match(/switchOptimizerTab\('([^']+)'\)/);
     if (match) t.classList.toggle('active', match[1] === tabId);
   });
+}
+
+function switchOptimizerMode(mode) {
+  optimizerMode = mode;
+  document.querySelectorAll('.optimizer-mode-panel').forEach(p => {
+    p.classList.toggle('active', p.id === `optimizer-${mode === 'static' ? 'static' : 'ai-suggestions'}-panel`);
+  });
+  document.querySelectorAll('.optimizer-mode-tab').forEach(t => {
+    const onclick = t.getAttribute('onclick') || '';
+    const match = onclick.match(/switchOptimizerMode\('([^']+)'\)/);
+    if (match) t.classList.toggle('active', match[1] === mode);
+  });
+}
+
+function toggleAIOptimizerModelMenu() {
+  const picker = document.getElementById('ai-optimizer-model-picker');
+  if (!picker) return;
+  const wasOpen = picker.classList.contains('open');
+  document.querySelectorAll('.ai-optimizer-model-picker.open').forEach(p => p.classList.remove('open'));
+  if (!wasOpen) picker.classList.add('open');
+}
+
+function selectAIOptimizerModel(modelId) {
+  aiOptimizerModelId = modelId;
+  document.querySelectorAll('.ai-optimizer-model-picker.open').forEach(p => p.classList.remove('open'));
+  // Update pill label
+  const pill = document.querySelector('#ai-optimizer-model-picker .ai-optimizer-model-pill');
+  const menu = document.querySelector('#ai-optimizer-model-picker .ai-optimizer-model-menu');
+  const model = aiModels.find(m => m.id === modelId);
+  if (pill && model) { pill.innerHTML = `${model.label} <span class="pill-chevron">&#x25BE;</span>`; pill.setAttribute('data-tip', 'Click to switch model'); }
+  if (menu) menu.innerHTML = aiModels.map(m =>
+    `<div class="ai-optimizer-model-option${m.id === modelId ? ' active' : ''}" onclick="selectAIOptimizerModel('${m.id}')">` +
+    `<span class="check">${m.id === modelId ? '●' : ''}</span>${m.label}</div>`
+  ).join('');
+}
+
+function generateAIOptimizerSuggestions() {
+  const btn = document.getElementById('ai-optimizer-gen-btn');
+  const output = document.getElementById('ai-optimizer-suggestions-output');
+  if (!btn || !output) return;
+
+  const wasActive = autoRefreshActive;
+  if (autoRefreshActive) pauseAutoRefresh();
+
+  const modelParam = aiOptimizerModelId ? `?model=${encodeURIComponent(aiOptimizerModelId)}` : '';
+  const modelName = modelLabel(aiOptimizerModelId) || aiOptimizerModelId;
+
+  btn.disabled = true;
+  output.innerHTML = `
+    <div class="ai-loading">
+      <div class="ai-spinner"></div>
+      <div>Optimizing with ${modelName}, please wait...</div>
+    </div>
+    <div id="ai-optimizer-cards-streaming" style="margin-top:12px"></div>`;
+
+  streamAIOptimizerFetch(modelParam, output, wasActive);
+}
+
+async function streamAIOptimizerFetch(modelParam, output, wasActive) {
+  const accumulatedSuggestions = [];
+
+  try {
+    const res = await fetch('/api/ai-optimizer' + modelParam, { method: 'POST' });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      let currentEvent = '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          currentEvent = line.slice(7);
+        } else if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (currentEvent === 'model') {
+            const usedModel = JSON.parse(data);
+            const loading = output.querySelector('.ai-loading div:last-child');
+            if (loading) loading.textContent = `Optimizing with ${modelLabel(usedModel)}, please wait...`;
+          } else if (currentEvent === 'suggestion') {
+            const suggestion = JSON.parse(data);
+            accumulatedSuggestions.push(suggestion);
+            // Render cards progressively
+            const streamEl = document.getElementById('ai-optimizer-cards-streaming');
+            if (streamEl) streamEl.innerHTML = renderAIOptimizerCards(accumulatedSuggestions);
+          } else if (currentEvent === 'done') {
+            const { generatedAt, model } = JSON.parse(data);
+            const loading = output.querySelector('.ai-loading');
+            if (loading) loading.remove();
+            // Merge AI suggestions with static and cache
+            const merged = optimizerSuggestions
+              ? mergeAISuggestionsWithStatic(optimizerSuggestions, accumulatedSuggestions)
+              : null;
+            cachedAIOptimizerSuggestions = { suggestions: accumulatedSuggestions, mergedSuggestions: merged, generatedAt, model };
+            renderAIOptimizerSuggestionsComplete(accumulatedSuggestions, generatedAt, model);
+            if (wasActive) resumeAutoRefreshIfPaused();
+          } else if (currentEvent === 'error') {
+            const { message } = JSON.parse(data);
+            const btn = document.getElementById('ai-optimizer-gen-btn');
+            if (btn) btn.disabled = false;
+            output.innerHTML = `<div class="ai-error">${escHtml(message)}</div>
+              <button class="optimizer-generate-btn" style="margin-top:8px" onclick="generateAIOptimizerSuggestions()">Retry</button>`;
+            if (wasActive) resumeAutoRefreshIfPaused();
+          }
+        }
+      }
+    }
+  } catch (err) {
+    const btn = document.getElementById('ai-optimizer-gen-btn');
+    if (btn) btn.disabled = false;
+    output.innerHTML = `<div class="ai-error">Failed to connect to server</div>
+      <button class="optimizer-generate-btn" style="margin-top:8px" onclick="generateAIOptimizerSuggestions()">Retry</button>`;
+    if (wasActive) resumeAutoRefreshIfPaused();
+  }
+}
+
+function mergeAISuggestionsWithStatic(staticSuggestions, aiSuggestions) {
+  const normalize = (s) => (s || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  const priorityOrder = { high: 0, medium: 1, low: 2 };
+
+  const result = {
+    skills: [...staticSuggestions.skills],
+    claudeMd: [...staticSuggestions.claudeMd],
+    agents: [...staticSuggestions.agents],
+    plugins: [...staticSuggestions.plugins],
+  };
+
+  for (const ai of aiSuggestions) {
+    const type = ai.type;
+    if (!result[type]) continue;
+    const aiTitle = normalize(ai.title);
+    const idx = result[type].findIndex(s => {
+      const st = normalize(s.title || s.name || s.use_case || '');
+      return st === aiTitle || st.includes(aiTitle) || aiTitle.includes(st);
+    });
+    if (idx >= 0) {
+      result[type][idx] = { ...result[type][idx], ...ai, aiEnhanced: true };
+    } else {
+      result[type].push({ ...ai, aiNew: true });
+    }
+  }
+
+  for (const type of Object.keys(result)) {
+    result[type].sort((a, b) => (priorityOrder[a.priority] ?? 1) - (priorityOrder[b.priority] ?? 1));
+  }
+  return result;
+}
+
+function renderAIOptimizerCards(suggestions) {
+  if (!suggestions.length) return '';
+  const groups = { skills: [], claudeMd: [], agents: [], plugins: [] };
+  for (const s of suggestions) {
+    if (groups[s.type]) groups[s.type].push(s);
+  }
+  const typeLabels = { skills: 'Skills', claudeMd: 'CLAUDE.md', agents: 'Agents', plugins: 'Plugins' };
+  return Object.entries(groups).filter(([, items]) => items.length > 0).map(([type, items]) => `
+    <div class="ai-suggestions-type-group">
+      <div class="ai-suggestions-type-label">${typeLabels[type] || type}</div>
+      ${renderSuggestionList(type, items, true)}
+    </div>`).join('');
+}
+
+function renderAIOptimizerSuggestionsComplete(suggestions, generatedAt, model) {
+  const output = document.getElementById('ai-optimizer-suggestions-output');
+  const btn = document.getElementById('ai-optimizer-gen-btn');
+  if (!output) return;
+  if (btn) btn.disabled = false;
+  output.innerHTML = `
+    <div>${renderAIOptimizerCards(suggestions)}</div>
+    <div class="optimizer-timestamp">
+      Generated ${new Date(generatedAt).toLocaleString()}${model ? ' · ' + modelLabel(model) : ''}
+      <button class="optimizer-generate-btn" style="padding:4px 12px;font-size:11px;margin-left:8px" onclick="generateAIOptimizerSuggestions()" data-warn="⚠ This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.">Regenerate</button>
+      <button class="optimizer-generate-btn" style="padding:4px 12px;font-size:11px;background:var(--surface2);color:var(--text2)" onclick="clearAIOptimizerSuggestions()">Clear</button>
+    </div>`;
+}
+
+function clearAIOptimizerSuggestions() {
+  cachedAIOptimizerSuggestions = null;
+  fetch('/api/ai-optimizer', { method: 'DELETE' }).catch(() => {});
+  const output = document.getElementById('ai-optimizer-suggestions-output');
+  const btn = document.getElementById('ai-optimizer-gen-btn');
+  const currentModel = aiModels.find(m => m.id === aiOptimizerModelId);
+  if (output) output.innerHTML = `<div style="font-size:12px; color:var(--text3); padding: 4px 0;">
+    AI will analyze your session patterns and generate enhanced suggestions using ${currentModel ? currentModel.label : 'Opus 4.6'}.
+    These may replace or add to the static suggestions.
+  </div>`;
+  if (btn) btn.disabled = false;
 }
 
 function generateOptimizerContent() {
@@ -2071,7 +2382,7 @@ function renderOptimizerAIComplete(content, generatedAt, model) {
     <div class="optimizer-ai-content">${renderOptimizerMarkdown(escHtml(content))}</div>
     <div class="optimizer-timestamp">
       Generated ${new Date(generatedAt).toLocaleString()}${model ? ' · ' + modelLabel(model) : ''}
-      <button class="optimizer-generate-btn" style="padding:4px 12px;font-size:11px;margin-left:8px" onclick="generateOptimizerContent()">Regenerate</button>
+      <button class="optimizer-generate-btn" style="padding:4px 12px;font-size:11px;margin-left:8px" onclick="generateOptimizerContent()" data-warn="⚠ This runs a real Claude session and will show up in your own usage stats. Each generation costs roughly the same as a short coding task.">Regenerate</button>
       <button class="optimizer-generate-btn" style="padding:4px 12px;font-size:11px;background:var(--surface2);color:var(--text2)" onclick="clearOptimizerAI()">Clear</button>
     </div>`;
 }

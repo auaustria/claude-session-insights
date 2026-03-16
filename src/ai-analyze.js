@@ -458,3 +458,225 @@ export function getCachedSuggestions() {
 export function clearCachedSuggestions() {
   cachedSuggestionResult = null;
 }
+
+// --- AI Optimizer Suggestions (structured suggestion objects) ---
+
+function buildOptimizerSuggestionsPrompt(scoredData, staticSuggestions) {
+  const { sessions, badges, overallScore } = scoredData;
+  const totalCost = sessions.reduce((s, x) => s + x.totals.estimatedCost, 0);
+  const projectNames = [...new Set(sessions.map((s) => s.project).filter(Boolean))].slice(0, 5);
+  const badgeNames = badges.map((b) => `${b.negative ? "⚠ " : "✓ "}${b.name}`).join(", ");
+
+  const staticSummary = [
+    ...staticSuggestions.skills.map(s => `skills: "${s.title}" (${s.priority})`),
+    ...staticSuggestions.claudeMd.map(s => `claudeMd: "${s.title}" (${s.priority})`),
+    ...staticSuggestions.agents.map(s => `agents: "${s.title || s.name}" (${s.priority})`),
+    ...staticSuggestions.plugins.map(s => `plugins: "${s.title || s.name}" (${s.priority})`),
+  ].join("\n");
+
+  return `You are analyzing a developer's Claude Code session data to generate workflow improvement suggestions.
+
+## Their Usage Context
+- ${sessions.length} total sessions across ${projectNames.length} project(s): ${projectNames.join(", ")}
+- Overall efficiency score: ${overallScore}/100
+- Total spend: $${totalCost.toFixed(2)}
+- Badges: ${badgeNames || "none"}
+
+## Existing rule-based suggestions (already shown to user)
+${staticSummary || "none"}
+
+## Your task
+Generate 4-8 workflow suggestions based on a deeper analysis of their patterns. You may enhance existing rule-based suggestions with better rationale, or add entirely new suggestions the rules missed.
+
+Output ONLY a series of JSON objects, one per line, with NO other text, markdown, or explanation. Each line must be valid JSON in exactly one of these formats:
+
+For skills: {"type":"skills","title":"Short action title","rationale":"Why this helps, referencing their specific data","priority":"high","trigger":"/slash-command"}
+For CLAUDE.md: {"type":"claudeMd","title":"Short title","rationale":"Why this helps","priority":"medium","scope":"global","projectName":"optional project name"}
+For agents: {"type":"agents","title":"Agent name","rationale":"Why this helps","priority":"low","use_case":"One-line description"}
+For plugins: {"type":"plugins","title":"Plugin name","rationale":"Why this helps","priority":"high","installCmd":"mcp install command"}
+
+Rules:
+- Output 4-8 total suggestions
+- Reference specific patterns from their data (costs, badges, session counts)
+- Prioritize suggestions NOT already in the rule-based list, or meaningfully improve on them with richer rationale
+- Output ONLY JSON lines, nothing else`;
+}
+
+let cachedOptimizerSuggestionsResult = null;
+
+/**
+ * Stream AI-generated structured suggestion objects.
+ * Emits: { event: "model", data: modelId }
+ *        { event: "suggestion", data: { type, title, rationale, priority, ... } }
+ *        { event: "done", data: { generatedAt, model } }
+ *        { event: "error", data: { message } }
+ */
+export function streamAIOptimizerSuggestions(scoredData, staticSuggestions, res, modelId) {
+  const prompt = buildOptimizerSuggestionsPrompt(scoredData, staticSuggestions);
+
+  const args = ["-p", "-", "--output-format", "stream-json", "--verbose"];
+  if (modelId) args.push("--model", modelId);
+
+  const resolvedModel = modelId || "default";
+  console.log(`[ai-optimizer] Starting (model: ${resolvedModel})`);
+  res.write(`event: model\ndata: ${JSON.stringify(resolvedModel)}\n\n`);
+
+  const child = spawn("claude", args, {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: cleanEnv,
+  });
+  activeChildren.add(child);
+
+  child.stdin.write(prompt);
+  child.stdin.end();
+
+  const aiSuggestions = [];
+  let errOutput = "";
+  let detectedModel = modelId || detectedDefaultModel || null;
+  let lineBuf = "";
+  let textBuf = "";
+
+  child.stdout.on("data", (buf) => {
+    lineBuf += buf.toString();
+    const lines = lineBuf.split("\n");
+    lineBuf = lines.pop();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const obj = JSON.parse(line);
+        if (obj.type === "system" || obj.type === "rate_limit_event") continue;
+        if (obj.type === "result") {
+          const models = Object.keys(obj.modelUsage || {});
+          if (models.length > 0) {
+            detectedModel = models[0];
+            if (!modelId) detectedDefaultModel = models[0];
+          }
+          continue;
+        }
+        if (obj.type === "assistant" && obj.message?.content) {
+          for (const block of obj.message.content) {
+            if (block.type === "text" && block.text) {
+              textBuf += block.text;
+              // Try to parse complete JSON lines from the text buffer
+              const textLines = textBuf.split("\n");
+              textBuf = textLines.pop(); // keep last (possibly incomplete) line
+              for (const tl of textLines) {
+                const trimmed = tl.trim();
+                if (!trimmed) continue;
+                try {
+                  const suggestion = JSON.parse(trimmed);
+                  if (suggestion.type && suggestion.title) {
+                    aiSuggestions.push(suggestion);
+                    res.write(`event: suggestion\ndata: ${JSON.stringify(suggestion)}\n\n`);
+                  }
+                } catch {
+                  // not a valid JSON suggestion line, skip
+                }
+              }
+            }
+          }
+          if (obj.message.model && !detectedModel) {
+            detectedModel = obj.message.model;
+            if (!modelId) detectedDefaultModel = obj.message.model;
+          }
+        }
+      } catch {
+        // not stream-json, treat as raw text
+      }
+    }
+  });
+
+  child.stderr.on("data", (buf) => {
+    errOutput += buf.toString();
+  });
+
+  child.on("error", (err) => {
+    const message =
+      err.code === "ENOENT"
+        ? "Claude CLI not found. Make sure `claude` is installed and in your PATH."
+        : `Claude CLI error: ${err.message}`;
+    res.write(`event: error\ndata: ${JSON.stringify({ message })}\n\n`);
+    res.end();
+  });
+
+  child.on("close", (code) => {
+    activeChildren.delete(child);
+    // Flush any remaining text buffer
+    if (textBuf.trim()) {
+      try {
+        const suggestion = JSON.parse(textBuf.trim());
+        if (suggestion.type && suggestion.title) {
+          aiSuggestions.push(suggestion);
+          res.write(`event: suggestion\ndata: ${JSON.stringify(suggestion)}\n\n`);
+        }
+      } catch { /* ignore */ }
+    }
+    if (code !== 0 && aiSuggestions.length === 0) {
+      const message = errOutput.trim() || `Claude CLI exited with code ${code}`;
+      console.error(`[ai-optimizer] Failed (exit ${code}): ${message}`);
+      res.write(`event: error\ndata: ${JSON.stringify({ message })}\n\n`);
+    } else {
+      const finalModel = detectedModel || resolvedModel;
+      console.log(`[ai-optimizer] Done (model: ${finalModel}, ${aiSuggestions.length} suggestions)`);
+      cachedOptimizerSuggestionsResult = {
+        suggestions: aiSuggestions,
+        generatedAt: new Date().toISOString(),
+        model: finalModel,
+      };
+      res.write(`event: done\ndata: ${JSON.stringify({ generatedAt: cachedOptimizerSuggestionsResult.generatedAt, model: finalModel })}\n\n`);
+    }
+    res.end();
+  });
+
+  res.on("close", () => {
+    if (child.exitCode === null) child.kill();
+  });
+}
+
+export function getCachedOptimizerSuggestions() {
+  return cachedOptimizerSuggestionsResult;
+}
+
+export function clearCachedOptimizerSuggestions() {
+  cachedOptimizerSuggestionsResult = null;
+}
+
+/**
+ * Merge AI-generated suggestions with static rule-based ones.
+ * AI suggestions matching an existing one (by type + title similarity) replace it;
+ * novel AI suggestions are appended.
+ */
+export function mergeAISuggestionsWithStatic(staticSuggestions, aiSuggestions) {
+  const normalize = (s) => (s || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+  const priorityOrder = { high: 0, medium: 1, low: 2 };
+
+  const result = {
+    skills: [...staticSuggestions.skills],
+    claudeMd: [...staticSuggestions.claudeMd],
+    agents: [...staticSuggestions.agents],
+    plugins: [...staticSuggestions.plugins],
+  };
+
+  for (const ai of aiSuggestions) {
+    const type = ai.type;
+    if (!result[type]) continue;
+
+    const aiTitle = normalize(ai.title);
+    const idx = result[type].findIndex((s) => {
+      const st = normalize(s.title || s.name || s.use_case || "");
+      return st === aiTitle || st.includes(aiTitle) || aiTitle.includes(st);
+    });
+
+    if (idx >= 0) {
+      result[type][idx] = { ...result[type][idx], ...ai };
+    } else {
+      result[type].push(ai);
+    }
+  }
+
+  for (const type of Object.keys(result)) {
+    result[type].sort((a, b) => (priorityOrder[a.priority] ?? 1) - (priorityOrder[b.priority] ?? 1));
+  }
+
+  return result;
+}

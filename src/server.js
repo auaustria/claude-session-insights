@@ -7,7 +7,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { parseAllSessions } from "./parser.js";
 import { scoreAllSessions } from "./scorer.js";
-import { streamAIAnalysis, getCachedAnalysis, clearCachedAnalysis, getAvailableModels, killActiveProcesses, detectDefaultModel, buildPrompt, buildDataSnapshot, streamAISuggestions, getCachedSuggestions, clearCachedSuggestions } from "./ai-analyze.js";
+import { streamAIAnalysis, getCachedAnalysis, clearCachedAnalysis, getAvailableModels, killActiveProcesses, detectDefaultModel, buildPrompt, buildDataSnapshot, streamAISuggestions, getCachedSuggestions, clearCachedSuggestions, streamAIOptimizerSuggestions, getCachedOptimizerSuggestions, clearCachedOptimizerSuggestions } from "./ai-analyze.js";
 import { generateSuggestions } from "./suggestions.js";
 
 const execFileAsync = promisify(execFile);
@@ -205,6 +205,29 @@ export function startServer(port = 6543) {
       if (url.pathname === "/api/ai-suggestions" && req.method === "GET") {
         const cached = getCachedSuggestions();
         return json(res, cached || { content: null });
+      }
+
+      if (url.pathname === "/api/ai-optimizer" && req.method === "POST") {
+        const data = await getData();
+        const suggestions = generateSuggestions(data);
+        const modelId = url.searchParams.get("model") || "";
+        res.writeHead(200, {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        });
+        streamAIOptimizerSuggestions(data, suggestions, res, modelId || undefined);
+        return;
+      }
+
+      if (url.pathname === "/api/ai-optimizer" && req.method === "DELETE") {
+        clearCachedOptimizerSuggestions();
+        return json(res, { ok: true });
+      }
+
+      if (url.pathname === "/api/ai-optimizer" && req.method === "GET") {
+        const cached = getCachedOptimizerSuggestions();
+        return json(res, cached || { suggestions: null });
       }
 
       if (url.pathname === "/api/refresh") {
