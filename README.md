@@ -20,10 +20,9 @@ Think "Spotify Wrapped" for your Claude Code usage — scores, summaries, badges
 - **Account Info** — displays your subscription type, org, and email from `claude auth status`
 
 ## Screenshots
-<img width="1080" height="880" alt="image" src="https://github.com/user-attachments/assets/d9914527-4ea5-49ed-aa8a-09a2896b1c67" />
+<img width="1149" height="735" alt="image" src="https://github.com/user-attachments/assets/91f2698c-ba43-4d24-a5ba-a92a872d2408" />
+<img width="1148" height="735" alt="image" src="https://github.com/user-attachments/assets/f3dfe041-3ae4-4798-9010-6f95e6227c24" />
 <img width="1080" height="845" alt="image" src="https://github.com/user-attachments/assets/20799313-617c-4bc6-a999-76a0d95e2d8e" />
-<img width="1080" height="823" alt="image" src="https://github.com/user-attachments/assets/249b4c78-8849-4db6-91bf-5ac87b4defbc" />
-
 
 ## Quick Start
 
