@@ -1413,27 +1413,23 @@ function renderDashboard(data) {
     <div class="whatsnew-overlay" id="whatsnew-overlay" onclick="if(event.target===this)closeWhatsNew(false)">
       <div class="whatsnew-modal">
         <button class="whatsnew-x" onclick="closeWhatsNew(false)">&times;</button>
-        <div class="whatsnew-version">v0.4.0 — What's New</div>
+        <div class="whatsnew-version">v0.4.2 — What's New</div>
         <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:18px;">
-          <h2 style="margin-bottom:0">Workflow Optimizer</h2>
+          <h2 style="margin-bottom:0">Unified Session Intelligence &amp; Workflow Optimizer</h2>
           <button class="whatsnew-showme" onclick="showMeWhatsNew()">Take me there!</button>
         </div>
         <ul class="whatsnew-items">
           <li>
-            <span class="wi-icon">&#9881;</span>
-            <span><strong>Rule-based suggestions</strong> — analyzes your badges, tool patterns, and session history to recommend skills, CLAUDE.md files, and subagents to create</span>
+            <span class="wi-icon">&#128161;</span>
+            <span><strong>Session Intelligence</strong> — merged static overview and AI Insights into a single card with an <em>AI Analyze</em> button right in the header</span>
           </li>
           <li>
-            <span class="wi-icon">&#10024;</span>
-            <span><strong>AI artifact generation</strong> — streams ready-to-copy content: full CLAUDE.md text, skill prompt bodies, and agent configs tailored to your workflow</span>
-          </li>
-          <li>
-            <span class="wi-icon">&#128274;</span>
-            <span><strong>Context-aware plugin advice</strong> — only suggests MCP plugins where CLI tools have a real gap, avoiding unnecessary context overhead</span>
+            <span class="wi-icon">&#9889;</span>
+            <span><strong>AI Optimize</strong> — unified tabs into one card; the <em>AI Optimize</em> button lives in the header and AI-generated content appears above static suggestions</span>
           </li>
         </ul>
         <div class="whatsnew-actions">
-          <button class="whatsnew-dismiss" onclick="closeWhatsNew(true)">OK. Don't show again.</button>
+          <button class="whatsnew-dismiss" onclick="closeWhatsNew(true)">Got it. Don't show again.</button>
         </div>
       </div>
     </div>
@@ -2864,7 +2860,7 @@ fetchData().then(data => {
 
 // --- What's New ---
 
-const WHATS_NEW_VERSION = '0.4.0';
+const WHATS_NEW_VERSION = '0.4.2';
 
 function closeWhatsNew(persist) {
   document.getElementById('whatsnew-overlay').classList.remove('open');
@@ -2874,12 +2870,14 @@ function closeWhatsNew(persist) {
 function showMeWhatsNew() {
   closeWhatsNew(false);
   setTimeout(() => {
-    const el = document.getElementById('optimizer-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      el.style.transition = 'box-shadow 0.3s';
-      el.style.boxShadow = '0 0 0 2px var(--accent)';
-      setTimeout(() => { el.style.boxShadow = ''; }, 1800);
+    const btn = document.getElementById('ai-optimizer-gen-btn');
+    if (btn) {
+      btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      let flashes = 0;
+      const interval = setInterval(() => {
+        btn.style.filter = flashes % 2 === 0 ? 'brightness(1.6)' : '';
+        if (++flashes >= 6) { clearInterval(interval); btn.style.filter = ''; }
+      }, 200);
     }
   }, 200);
 }
